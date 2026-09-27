@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RNS Gateway · Staff</title>
+<style>
+:root{--bg:#081521;--panel:#10263a;--panel2:#15304a;--line:rgba(200,230,236,.14);--text:#f2f8fa;--muted:#9fb4bf;--aqua:#6fe3da;--gold:#f2c777;--red:#ff8d97;--green:#8ee6bf;--r:14px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer}
+h1,h2,h3{margin:0;font-weight:800}
+#gate{min-height:100vh;display:grid;place-items:center;padding:20px}
+#app{display:none}
+.hidden{display:none!important}
+.login{width:min(100%,400px);padding:26px;border:1px solid var(--line);border-radius:20px;background:var(--panel)}
+.login h1{font-size:24px;margin:20px 0 6px}
+.hint{color:var(--muted);margin:0 0 16px}
+.field{margin:12px 0}
+.field label{display:block;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.input{display:block;width:100%;min-height:42px;background:#071420;border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:15px;outline:0}
+.input:focus{border-color:var(--aqua)}
+.primary{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:44px;border:0;border-radius:10px;background:linear-gradient(110deg,#0e7a82,#0d3a55);color:#fff;font-weight:800}
+.error{min-height:20px;color:var(--red);font-size:13px;margin:10px 0 0}
+header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+header.top h1{font-size:16px}
+header.top .actions{display:flex;gap:8px}
+nav.tabs{display:flex;gap:4px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+nav.tabs button{min-height:36px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-weight:700;white-space:nowrap}
+nav.tabs button.active{background:var(--aqua);color:#062229}
+main{padding:16px 18px 40px}
+.panel{display:none}.panel.active{display:block}
+.card{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:16px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.stat{padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel2)}
+.stat b{display:block;font-size:22px}
+.stat span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar .input{width:auto;flex:1 1 200px;max-width:280px}
+.small{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:0 12px;color:var(--text);font-size:12px;font-weight:600}
+.danger{color:var(--red);border-color:rgba(255,141,151,.35)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.15)}
+.mono{font-family:ui-monospace,monospace;font-weight:700}
+.muted{color:var(--muted)}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 8px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase}
+.pill.active,.pill.new{color:var(--green);border-color:rgba(142,230,191,.45)}
+.pill.revoked,.pill.expired,.pill.banned,.pill.kicked{color:var(--red);border-color:rgba(255,141,151,.4)}
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.plan{min-height:98px;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel2);padding:14px}
+.plan b{display:block;font-size:15px}
+.plan small{display:block;color:var(--muted);margin-top:4px;font-size:12px}
+.plan em{display:block;color:var(--gold);font-style:normal;font-size:13px;font-weight:700;margin-top:6px}
+.ticket{display:none;margin-top:14px;border:1px solid rgba(111,227,218,.35);border-radius:var(--r);background:rgba(111,227,218,.08);padding:14px}
+.ticket.show{display:block}
+.ticket .code{font:800 26px/1.2 ui-monospace,monospace;letter-spacing:.08em;color:var(--aqua);word-break:break-all;margin-top:4px}
+.empty{color:var(--muted);padding:20px;text-align:center}
+.toast{position:fixed;right:16px;bottom:16px;z-index:30;max-width:320px;padding:12px 14px;border:1px solid rgba(111,227,218,.3);border-radius:12px;background:#12314a;box-shadow:0 8px 24px rgba(0,0,0,.28);color:#eaf8f7;transform:translateY(16px);opacity:0;pointer-events:none;transition:.2s}
+.toast.on{transform:none;opacity:1}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}nav.tabs{overflow-x:auto}}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <section class="login">
+    <div style="color:var(--aqua);font-size:11px;font-weight:800;letter-spacing:.12em">RNS GATEWAY</div>
+    <h1 id="gateTitle">Staff login</h1>
+    <p class="hint" id="gateHint">Sign in to control the hotspot.</p>
+    <div class="field"><label>Password</label><input class="input" id="pass" type="password" autocomplete="current-password"></div>
+    <label class="remember" style="display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px;margin:12px 0">
+      <input id="remember" type="checkbox"> Remember this device
+    </label>
+    <button class="primary" id="gateBtn" type="button">Enter dashboard</button>
+    <div class="error" id="gateMsg"></div>
+  </section>
+</div>
+
+<div id="app">
+  <header class="top">
+    <h1 id="shopTitle">RNS Internet</h1>
+    <div class="actions">
+      <span class="muted" style="font-size:12px;align-self:center">● Gate armed</span>
+      <button class="small" id="logout" type="button">Log out</button>
+    </div>
+  </header>
+  <nav class="tabs" id="nav">
+    <button class="active" data-tab="sell">Sell</button>
+    <button data-tab="codes">Codes</button>
+    <button data-tab="clients">Clients</button>
+    <button data-tab="packages">Packages</button>
+    <button data-tab="network">Network</button>
+    <button data-tab="activity">Activity</button>
+  </nav>
+  <main>
+    <div class="stats">
+      <div class="stat"><b id="nOnline">0</b><span>Online</span></div>
+      <div class="stat"><b id="nWait">0</b><span>Waiting</span></div>
+      <div class="stat"><b id="nActive">0</b><span>Active</span></div>
+      <div class="stat"><b id="nNew">0</b><span>Unused</span></div>
+    </div>
+
+    <section class="panel active" id="tab-sell">
+      <div class="card">
+        <h2 style="margin-bottom:10px">Sell access</h2>
+        <div class="plans" id="plans"><div class="empty">Loading packages…</div></div>
+        <div class="toolbar" style="margin-top:14px">
+          <label class="muted" style="font-size:12px">Qty</label>
+          <input class="input" id="count" type="number" min="1" max="100" value="1" style="flex:0 0 80px;max-width:80px">
+          <input class="input" id="mintNote" placeholder="Note (optional)">
+        </div>
+        <div class="ticket" id="ticket">
+          <div style="color:var(--aqua);font-size:11px;font-weight:800;letter-spacing:.12em">NEW VOUCHER</div>
+          <div class="code" id="bigCode">—</div>
+          <div class="muted" id="ticketMeta" style="margin-top:4px"></div>
+          <div class="mono muted" id="moreCodes" style="margin-top:6px;font-size:12px;word-break:break-all"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="tab-codes">
+      <div class="card">
+        <div class="toolbar">
+          <input class="input" id="codeSearch" placeholder="Search code, MAC, IP…">
+          <button class="small" id="refreshCodes" type="button">Refresh</button>
+        </div>
+        <div style="overflow:auto">
+          <table><thead><tr><th>Voucher</th><th>Package</th><th>State</th><th>Device</th><th>Expiry</th><th></th></tr></thead>
+          <tbody id="vbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="tab-clients">
+      <div class="card">
+        <div class="toolbar">
+          <input class="input" id="clientSearch" placeholder="Search MAC, IP, voucher…">
+          <button class="small" id="refreshClients" type="button">Refresh</button>
+        </div>
+        <div style="overflow:auto">
+          <table><thead><tr><th>MAC</th><th>IP</th><th>State</th><th>Voucher</th><th>Expiry</th><th></th></tr></thead>
+          <tbody id="cbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="tab-packages">
+      <div class="card">
+        <h2 style="margin-bottom:10px">Package builder</h2>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <div class="field" style="grid-column:1/-1"><label>Name</label><input class="input" id="pkg_label" placeholder="e.g. Fast Hour"></div>
+          <div class="field"><label>Down Kbps</label><input class="input" id="pkg_down" type="number" placeholder="2048"></div>
+          <div class="field"><label>Up Kbps</label><input class="input" id="pkg_up" type="number" placeholder="1024"></div>
+          <div class="field"><label>Time</label><input class="input" id="pkg_duration" type="number" placeholder="3"></div>
+          <div class="field"><label>Unit</label>
+            <select class="input" id="pkg_duration_unit"><option value="hour">Hours</option><option value="day">Days</option></select>
+          </div>
+          <div class="field" style="grid-column:1/-1"><label>Price (Rs)</label><input class="input" id="pkg_price" type="number" step="0.01" placeholder="150"></div>
+          <input type="hidden" id="pkg_id">
+          <div style="grid-column:1/-1;display:flex;gap:8px;margin-top:6px">
+            <button class="primary" id="savePkg" type="button" style="width:auto;flex:1">Save package</button>
+            <button class="small" id="resetPkg" type="button">Clear</button>
+          </div>
+        </div>
+        <div id="packageList" style="margin-top:14px"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="tab-network">
+      <div class="card">
+        <h2 style="margin-bottom:10px">Wi-Fi and network</h2>
+        <div class="field"><label>Shop name</label><input class="input" id="shop"></div>
+        <div class="field"><label>SSID</label><input class="input" id="ssid"></div>
+        <div class="field"><label>Channel</label><input class="input" id="channel" inputmode="numeric"></div>
+        <div class="field"><label>Max clients</label><input class="input" id="max_sta" inputmode="numeric"></div>
+        <button class="primary" id="saveNet" type="button" style="width:auto;margin-top:6px">Save network</button>
+      </div>
+    </section>
+
+    <section class="panel" id="tab-activity">
+      <div class="card"><div id="ebody" class="muted">Loading…</div></div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var tab='sell',packages=[],lastCodes=[];
+  function $(id){return document.getElementById(id)}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
+  function api(path,data){
+    var opt={headers:{Accept:'application/json'},credentials:'same-origin'};
+    if(data){opt.method='POST';opt.headers['Content-Type']='application/x-www-form-urlencoded';opt.body=new URLSearchParams(data).toString()}
+    return fetch(path,opt).then(function(r){return r.json().then(function(j){j._status=r.status;return j})});
+  }
+  function toast(t){$('toast').textContent=t;$('toast').classList.add('on');setTimeout(function(){$('toast').classList.remove('on')},2600)}
+  function when(e){e=Number(e)||0;if(!e)return '—';var d=new Date(e*1000);return d.toLocaleDateString([],{day:'numeric',month:'short'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+  function speed(k){return Number(k)>=1024?(Math.round(Number(k)/102.4)/10)+' Mbps':(k||0)+' Kbps'}
+  function dur(sec){sec=Number(sec)||0;if(sec<=0)return '—';if(sec%86400===0)return (sec/86400)+'d';if(sec%3600===0)return (sec/3600)+'h';return Math.round(sec/60)+'m'}
+  function left(sec){sec=Number(sec)||0;if(sec<=0)return '';var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h?h+'h '+m+'m':m+'m'}
+
+  function showGate(setup){
+    $('app').style.display='none';
+    $('gate').classList.remove('hidden');
+    $('gateTitle').textContent=setup?'Create staff password':'Staff login';
+    $('gateHint').textContent=setup?'First launch: choose a password only you know.':'Sign in to control the hotspot.';
+    $('gateBtn').textContent=setup?'Create password':'Enter dashboard';
+    $('gateBtn').dataset.setup=setup?'1':'0';
+  }
+  function showApp(){
+    $('gate').classList.add('hidden');
+    $('app').style.display='block';
+    refresh();loadPackages();loadSettings();
+  }
+  function go(name){
+    tab=name;
+    document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name)});
+    document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('active',p.id==='tab-'+name)});
+    if(name==='codes')loadCodes();
+    if(name==='clients')loadClients();
+    if(name==='packages')loadPackages();
+    if(name==='activity')loadEvents();
+    if(name==='network')loadSettings();
+  }
+  function refresh(){api('/api/admin/overview').then(function(j){
+    if(j._status===401)return showGate(false);
+    var c=j.counts||{};
+    $('nOnline').textContent=c.online||0;
+    $('nWait').textContent=c.waiting||0;
+    $('nActive').textContent=c.active||0;
+    $('nNew').textContent=c.unused||0;
+  }).catch(function(){})}
+
+  function loadPackages(){api('/api/admin/packages').then(function(j){
+    packages=j.packages||[];
+    var html=packages.map(function(p){
+      return '<button class="plan" data-plan="'+esc(p.id)+'"><b>'+esc(p.label)+'</b><small>'+speed(p.down_kbps)+' / '+speed(p.up_kbps)+'<br>'+dur(p.seconds)+'</small>'+(p.price?'<em>Rs '+esc(p.price)+'</em>':'')+'</button>';
+    }).join('');
+    $('plans').innerHTML=html||'<div class="empty">No packages yet — build one in the Packages tab.</div>';
+    $('packageList').innerHTML=packages.map(function(p){
+      return '<div style="display:flex;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px;font-size:12px"><span><b>'+esc(p.label)+'</b><br><span class="muted">'+dur(p.seconds)+' · '+speed(p.down_kbps)+'/'+speed(p.up_kbps)+'</span></span><span><b>'+(p.price?'Rs '+esc(p.price):'—')+'</b> <button class="small" data-del="'+esc(p.id)+'">Delete</button></span></div>';
+    }).join('');
+    document.querySelectorAll('.plan').forEach(function(b){b.addEventListener('click',function(){mint(b.dataset.plan)})});
+    document.querySelectorAll('[data-del]').forEach(function(b){b.addEventListener('click',function(){
+      if(!confirm('Delete package?'))return;
+      api('/api/admin/packages',{action:'delete',id:b.dataset.del}).then(function(j){toast(j.ok?'Deleted':'Failed');loadPackages()});
+    })});
+  })}
+
+  function mint(plan){
+    var n=Math.max(1,Math.min(100,Number($('count').value)||1));
+    api('/api/admin/mint',{plan:plan,count:n,note:$('mintNote').value}).then(function(j){
+      if(!j.ok)return toast(j.error||'Could not generate');
+      lastCodes=j.codes||[];
+      $('bigCode').textContent=lastCodes[0]||'';
+      $('moreCodes').textContent=lastCodes.length>1?lastCodes.join('  '):'';
+      var p=packages.filter(function(x){return x.id===plan})[0];
+      $('ticketMeta').textContent=(p?p.label:plan)+' · '+lastCodes.length+' generated';
+      $('ticket').classList.add('show');
+      toast('Voucher generated');refresh();
+    });
+  }
+
+  function loadCodes(){
+    var url='/api/admin/vouchers?status=all&search='+encodeURIComponent($('codeSearch').value||'');
+    api(url).then(function(j){
+      var rows=j.vouchers||[];
+      $('vbody').innerHTML=rows.map(function(v){
+        var acts='';
+        if(v.status==='active')acts+='<button class="small" data-act="unbind" data-code="'+esc(v.code)+'">Unbind</button> ';
+        if(v.status!=='revoked')acts+='<button class="small danger" data-act="revoke" data-code="'+esc(v.code)+'">Revoke</button>';
+        return '<tr><td class="mono">'+esc(v.display||v.code)+'</td><td>'+esc(v.plan)+'<br><span class="muted">'+speed(v.down_kbps)+'/'+speed(v.up_kbps)+'</span></td><td><span class="pill '+esc(v.status)+'">'+esc(v.status)+'</span></td><td class="mono">'+esc(v.mac||'—')+'</td><td>'+(v.expires?esc(when(v.expires)):'—')+'</td><td>'+acts+'</td></tr>';
+      }).join('')||'<tr><td colspan="6" class="empty">No vouchers</td></tr>';
+    });
+  }
+
+  function loadClients(){
+    api('/api/admin/clients').then(function(j){
+      var rows=j.clients||[];
+      var q=($('clientSearch').value||'').toLowerCase();
+      rows=rows.filter(function(c){return !q||[c.mac,c.ip,c.voucher,c.plan].some(function(v){return String(v||'').toLowerCase().indexOf(q)>-1})});
+      $('cbody').innerHTML=rows.map(function(c){
+        var acts='';
+        if(c.state==='banned')acts='<button class="small" data-state="active">Unban</button>';
+        else if(c.state==='kicked')acts='<button class="small" data-state="active">Unkick</button>';
+        else acts='<button class="small" data-state="kicked">Kick</button> <button class="small danger" data-state="banned">Ban</button>';
+        return '<tr><td class="mono">'+esc(c.mac)+'</td><td>'+esc(c.ip||'—')+'</td><td><span class="pill '+esc(c.state)+'">'+esc(c.state)+'</span></td><td class="mono">'+esc(c.voucher||'—')+'</td><td>'+(c.expires?esc(when(c.expires)):'—')+'</td><td>'+acts+'</td></tr>';
+      }).join('')||'<tr><td colspan="6" class="empty">No clients</td></tr>';
+      document.querySelectorAll('#cbody button[data-state]').forEach(function(b){
+        b.addEventListener('click',function(){
+          var mac=b.closest('tr').querySelector('.mono').textContent;
+          var st=b.dataset.state;
+          if(st==='banned'&&!confirm('Ban this device?'))return;
+          api('/api/admin/client-status',{mac:mac,state:st}).then(function(j){toast(j.ok?'Updated':(j.error||'Failed'));loadClients()});
+        });
+      });
+    });
+  }
+
+  function loadEvents(){
+    api('/api/admin/events').then(function(j){
+      $('ebody').innerHTML=(j.events||[]).slice().reverse().map(function(e){
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:12px"><span class="muted">'+new Date((e.t||0)*1000).toLocaleString()+'</span> <b>'+esc(e.action)+'</b><br>'+esc(e.detail)+'</div>';
+      }).join('')||'<div class="muted">No events yet.</div>';
+    });
+  }
+
+  function loadSettings(){
+    api('/api/admin/settings').then(function(s){
+      ['shop','ssid','channel','max_sta'].forEach(function(id){if($(id)&&s[id]!=null)$(id).value=s[id]});
+      $('shopTitle').textContent=s.shop||'RNS Internet';
+    });
+  }
+
+  $('gateBtn').addEventListener('click',function(){
+    var setup=this.dataset.setup==='1';
+    var path=setup?'/api/setup':'/api/login';
+    api(path,{password:$('pass').value,remember:$('remember').checked?'1':'0'}).then(function(j){
+      if(!j.ok){$('gateMsg').textContent=j.error||'Could not sign in';return}
+      $('gateMsg').textContent='';showApp();
+    });
+  });
+  $('pass').addEventListener('keydown',function(e){if(e.key==='Enter')$('gateBtn').click()});
+  $('logout').addEventListener('click',function(){api('/api/logout',{x:1}).then(function(){location.reload()})});
+  document.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.tab)})});
+  $('codeSearch').addEventListener('input',function(){clearTimeout(window._s);window._s=setTimeout(loadCodes,250)});
+  $('clientSearch').addEventListener('input',function(){clearTimeout(window._c);window._c=setTimeout(loadClients,250)});
+  $('refreshCodes').addEventListener('click',loadCodes);
+  $('refreshClients').addEventListener('click',loadClients);
+  $('vbody').addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b)return;
+    if(!confirm('Confirm '+b.dataset.act+'?'))return;
+    api('/api/admin/'+b.dataset.act,{code:b.dataset.code}).then(function(j){toast(j.ok?'Done':(j.error||'Failed'));loadCodes()});
+  });
+  $('savePkg').addEventListener('click',function(){
+    var id=$('pkg_id').value;
+    var label=$('pkg_label').value.trim();
+    var d=Number($('pkg_duration').value)||0;
+    if(!label||d<=0)return toast('Name and time required');
+    if(!id){
+      id=label.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,20)+'-'+d+$('pkg_duration_unit').value.charAt(0);
+      var base=id,k=2;
+      while(packages.some(function(x){return x.id===id})){id=base+'-'+k;k++}
+    }
+    api('/api/admin/packages',{id:id,label:label,duration:d,duration_unit:$('pkg_duration_unit').value,down_kbps:$('pkg_down').value,up_kbps:$('pkg_up').value,price:$('pkg_price').value}).then(function(j){
+      if(!j.ok)return toast(j.error||'Save failed');
+      toast('Package saved');loadPackages();
+      ['pkg_id','pkg_label','pkg_down','pkg_up','pkg_duration','pkg_price'].forEach(function(x){$(x).value=''});
+    });
+  });
+  $('resetPkg').addEventListener('click',function(){['pkg_id','pkg_label','pkg_down','pkg_up','pkg_duration','pkg_price'].forEach(function(x){$(x).value=''})});
+  $('saveNet').addEventListener('click',function(){
+    api('/api/admin/settings',{shop:$('shop').value,ssid:$('ssid').value,channel:$('channel').value,max_sta:$('max_sta').value}).then(function(){toast('Saved');loadSettings()});
+  });
+
+  api('/api/status').then(function(s){
+    if(s.setup_required)showGate(true);
+    else api('/api/admin/overview').then(function(j){
+      if(j._status===401||j.ok===false)showGate(false);else showApp();
+    }).catch(function(){showGate(false)});
+  }).catch(function(){showGate(false)});
+  setInterval(function(){if($('app').style.display==='block')refresh()},7000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+#!/bin/sh
+export RNS_HOME=/usr/share/rns
+export RNS_DATA=/data/rns
+export BB=/bin/busybox
+export RNS_PORT=8080
+export RNS_BB=$BB
+
+setsid "$BB" sh "$RNS_HOME/bin/rnsd.sh" \
+  >> /var/log/rnsd.log 2>&1 < /dev/null &
+
+echo "[rnsd] voucher supervisor started"
+exit 0
