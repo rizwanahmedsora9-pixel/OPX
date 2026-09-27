@@ -649,7 +649,7 @@ END {
   exit ok ? 0 : 1
 }
 EOS
-pdfcheck() { LC_ALL=C "$BB" awk -f "$WORK/pdfcheck.awk" "$1" | "$BB" tr '\n' ' '; }
+pdfcheck() { LC_ALL=C "$BB" awk -f "$WORK/pdfcheck.awk" "$1" | "$BB" tr '\n' ' ' | "$BB" sed 's/ *$//'; }
 
 _rows="$WORK/vrows.tsv"
 printf 'ABCD-1234\tStudent Hour\t3600\t2048\t1024\t%s\t%s\t25\n' "$_NOW" "$((_NOW + 3600))" > "$_rows"
