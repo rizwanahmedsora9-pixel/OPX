@@ -41,7 +41,21 @@ jobs:
           sudo apt-get install -y --no-install-recommends busybox socat
 
       - name: Run the regression suite
-        run: sh rns-router/tests/run-tests.sh
+        run: |
+          # Surface the failing assertions in the job summary: the raw log needs
+          # a signed-in browser, and "Process completed with exit code 1" tells
+          # you nothing about which check broke.
+          if sh rns-router/tests/run-tests.sh > suite.log 2>&1; then
+            tail -3 suite.log
+          else
+            rc=$?
+            echo "### Overlay tests failed" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E '^  FAIL|^passed=' suite.log | head -40 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -3 suite.log
+            exit $rc
+          fi
 
   build:
     name: Build ISO
