@@ -1,0 +1,37 @@
+#!/bin/sh
+WL=""
+for n in /sys/class/net/*; do
+  name=$(basename "$n")
+  case "$name" in wlan*|wlp*|wlx*) WL="$name"; break ;; esac
+done
+
+if [ -z "$WL" ]; then
+  echo "[hostapd] no wireless interface — skipping"
+  exit 0
+fi
+
+echo "$WL" > /data/rns/wlan.if
+
+SSID=$(sed -n 's/^SSID=//p' /data/rns/config.env 2>/dev/null | head -n1)
+[ -n "$SSID" ] || SSID=RNS
+CH=$(sed -n 's/^CHANNEL=//p' /data/rns/config.env 2>/dev/null | head -n1)
+[ -n "$CH" ] || CH=6
+
+cat > /etc/hostapd.conf <<EOF
+interface=$WL
+driver=nl80211
+ssid=$SSID
+hw_mode=g
+channel=$CH
+auth_algs=1
+ignore_broadcast_ssid=0
+ap_isolate=1
+max_num_sta=128
+EOF
+
+ip link set "$WL" up
+ip link set "$WL" master br0 2>/dev/null || true
+
+/usr/sbin/hostapd -B -P /var/run/hostapd.pid /etc/hostapd.conf
+echo "[hostapd] started on $WL ssid=$SSID channel=$CH"
+exit 0

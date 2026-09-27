@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_RNS_ROUTER_PATH/package/rns/Config.in"

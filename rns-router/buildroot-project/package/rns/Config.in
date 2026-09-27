@@ -1,0 +1,4 @@
+config BR2_PACKAGE_RNS
+	bool "rns"
+	help
+	  RNS Gateway router OS scripts, portal, and admin panel.

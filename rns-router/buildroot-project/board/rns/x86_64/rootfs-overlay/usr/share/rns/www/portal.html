@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect · RNS Internet</title>
+<style>
+:root{--navy:#08131f;--teal:#0d777c;--gold:#f4c97b;--ink:#102033;--muted:#6a7888;--line:#d5dee7;--soft:#eef3f7;--danger:#c95662;--r:14px}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font:15px/1.5 system-ui,sans-serif;color:var(--ink)}
+body{background:linear-gradient(160deg,#07131f,#12354f 55%,#0c2a33);min-height:100vh}
+button,input{font:inherit;color:inherit}button{cursor:pointer}
+.shell{width:min(100% - 24px,460px);margin:0 auto;padding:20px 0 28px}
+.top{display:flex;align-items:center;justify-content:space-between;color:#fff;margin-bottom:14px}
+.brand strong{display:block;letter-spacing:.1em;font-size:16px}
+.brand small{display:block;color:#b9ccd8;font-size:12px;margin-top:2px}
+.card{background:#fff;border-radius:22px;padding:22px 18px 20px;box-shadow:0 14px 40px rgba(2,13,25,.28)}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#18858a}
+.card h1{margin:6px 0 4px;font-size:26px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+.network{display:inline-flex;gap:7px;align-items:center;color:var(--navy);font-weight:800}
+.network:before{content:"";width:8px;height:8px;border-radius:50%;background:#36c491;box-shadow:0 0 0 4px rgba(54,196,145,.15)}
+label{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.code-wrap{display:flex;align-items:center;background:#fff;border:1.5px solid var(--line);border-radius:var(--r);padding:0 12px}
+.code-wrap:focus-within{border-color:#18a8a2;box-shadow:0 0 0 3px rgba(24,168,162,.14)}
+.code-wrap span{font-size:20px;color:#b4bec8}
+.code-wrap input{width:100%;border:0;outline:0;background:transparent;font:800 24px/1 ui-monospace,monospace;letter-spacing:.1em;padding:15px 6px;text-align:center;text-transform:uppercase}
+.connect{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:14px;border:0;border-radius:var(--r);background:linear-gradient(110deg,#0d354e,#0d777c);color:#fff;font-weight:800;font-size:15px;letter-spacing:.04em}
+.connect:disabled{opacity:.6}
+.msg{min-height:22px;margin:12px 2px 0;font-size:14px}
+.msg.bad{color:var(--danger)}.msg.good{color:#148968}
+.success{display:none;text-align:center}
+.success.on{display:block}
+.check{width:60px;height:60px;margin:2px auto 14px;border-radius:20px;background:linear-gradient(145deg,#c8f5df,#7dd3b4);display:grid;place-items:center;color:#0a634d;font-size:32px;font-weight:900}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;text-align:left;margin-top:16px}
+.fact{padding:11px 12px;border-radius:12px;background:var(--soft)}
+.fact span{display:block;color:#6c7c89;font-size:10px;text-transform:uppercase}
+.fact b{display:block;margin-top:3px;font-size:14px}
+.footer{text-align:center;color:#bdd0d9;font-size:12px;margin-top:14px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div class="brand"><strong>RNS</strong><small id="shop">Internet voucher</small></div>
+  </header>
+  <section class="card">
+    <div id="formView">
+      <div class="eyebrow">Private access</div>
+      <h1>Welcome online.</h1>
+      <p class="sub">Connected to <span class="network" id="ssidName">RNS</span>. Enter the voucher from the counter to unlock this device.</p>
+      <form id="redeemForm" method="post" action="/api/redeem">
+        <label for="code">Voucher code</label>
+        <div class="code-wrap"><span>#</span><input id="code" name="code" autocomplete="one-time-code" autocapitalize="characters" maxlength="16" placeholder="ABCD-1234" required></div>
+        <button class="connect" id="connect" type="submit">Connect securely</button>
+      </form>
+      <p class="msg" id="msg"></p>
+    </div>
+    <div class="success" id="success">
+      <div class="check">✓</div>
+      <h2 style="font-size:24px">You're connected</h2>
+      <p class="sub">Voucher verified. Enjoy your internet.</p>
+      <div class="facts">
+        <div class="fact"><span>Speed</span><b id="speed">—</b></div>
+        <div class="fact"><span>Time left</span><b id="left">—</b></div>
+        <div class="fact"><span>Expires</span><b id="expiresAt">—</b></div>
+        <div class="fact"><span>Device</span><b>Bound to this phone</b></div>
+      </div>
+      <p class="sub" style="margin-top:14px;font-size:13px">Time runs by the clock from the moment the code was entered. When it ends, this page comes back.</p>
+    </div>
+  </section>
+  <div class="footer">RNS Gateway</div>
+</main>
+<script>
+(function(){
+  var code=document.getElementById('code'),
+      form=document.getElementById('redeemForm'),
+      btn=document.getElementById('connect'),
+      msg=document.getElementById('msg');
+  var expAt=0,leftTimer=null,pollTimer=null;
+  function show(t,k){msg.textContent=t;msg.className='msg '+(k||'')}
+  function clean(v){return v.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12)}
+  function speedStr(d,u){function o(k){return Number(k)>=1024?(Math.round(Number(k)/102.4)/10)+' Mbps':k+' Kbps'}return o(d)+' / '+o(u)}
+  function leftStr(s){s=Math.max(0,Number(s)||0);var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;if(h>=48)return Math.floor(h/24)+'d '+(h%24)+'h';if(h)return h+'h '+m+'m';if(m)return m+'m '+x+'s';return x+'s'}
+  function when(e){e=Number(e)||0;if(!e)return '—';var d=new Date(e*1000);return d.toLocaleDateString([],{day:'numeric',month:'short'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+  function showSuccess(j){
+    document.getElementById('formView').style.display='none';
+    document.getElementById('success').classList.add('on');
+    document.getElementById('speed').textContent=speedStr(j.down_kbps,j.up_kbps);
+    expAt=Number(j.expires)||0;
+    document.getElementById('expiresAt').textContent=when(expAt);
+    tickLeft();
+    if(leftTimer)clearInterval(leftTimer);
+    leftTimer=setInterval(tickLeft,1000);
+    if(pollTimer)clearInterval(pollTimer);
+    pollTimer=setInterval(function(){
+      fetch('/api/me',{headers:{Accept:'application/json'}}).then(function(r){return r.json()}).then(function(m){
+        if(m&&m.bound){expAt=Number(m.expires)||expAt;document.getElementById('expiresAt').textContent=when(expAt)}
+        else if(m&&m.ok){expired()}
+      }).catch(function(){});
+    },30000);
+  }
+  function tickLeft(){
+    var l=expAt-Math.floor(Date.now()/1000);
+    document.getElementById('left').textContent=leftStr(l);
+    if(l<=0)expired();
+  }
+  function expired(){
+    if(leftTimer){clearInterval(leftTimer);leftTimer=null}
+    if(pollTimer){clearInterval(pollTimer);pollTimer=null}
+    document.getElementById('success').classList.remove('on');
+    document.getElementById('formView').style.display='';
+    code.value='';
+    show('Your time is over. Enter a new voucher code to connect again.','bad');
+  }
+  code.addEventListener('input',function(){var p=clean(code.value);code.value=p.length>4?p.slice(0,4)+'-'+p.slice(4):p});
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var v=clean(code.value);
+    if(v.length<8){show('Enter the complete voucher code.','bad');return}
+    btn.disabled=true;show('');
+    fetch('/api/redeem',{method:'POST',headers:{Accept:'application/json','Content-Type':'application/x-www-form-urlencoded'},body:'code='+encodeURIComponent(v)})
+      .then(function(r){return r.json()})
+      .then(function(j){btn.disabled=false;if(j.ok)showSuccess(j);else show(j.error||'Voucher not accepted.','bad')})
+      .catch(function(){btn.disabled=false;show('Portal did not answer. Try again.','bad')});
+  });
+  fetch('/api/status').then(function(r){return r.json()}).then(function(s){
+    if(s.ssid)document.getElementById('ssidName').textContent=s.ssid;
+    if(s.shop)document.getElementById('shop').textContent=s.shop;
+  }).catch(function(){});
+  fetch('/api/me').then(function(r){return r.json()}).then(function(j){
+    if(j&&j.bound)showSuccess(j);
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>

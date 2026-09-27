@@ -1,0 +1,36 @@
+#!/bin/sh
+WAN_IF=$(cat /data/rns/wan.if 2>/dev/null)
+[ -n "$WAN_IF" ] || WAN_IF=eth0
+ADMIN_PORT=8080
+
+ipt() { iptables "$@"; }
+
+ipt -N RNS_FWD 2>/dev/null || true
+ipt -t nat -N RNS_PRE 2>/dev/null || true
+ipt -N RNS_IN 2>/dev/null || true
+
+ipt -C FORWARD -j RNS_FWD 2>/dev/null || ipt -I FORWARD 1 -j RNS_FWD
+ipt -t nat -C PREROUTING -j RNS_PRE 2>/dev/null || ipt -t nat -I PREROUTING 1 -j RNS_PRE
+ipt -C INPUT -j RNS_IN 2>/dev/null || ipt -I INPUT 1 -j RNS_IN
+
+ipt -t nat -C POSTROUTING -o "$WAN_IF" -j MASQUERADE 2>/dev/null \
+  || ipt -t nat -A POSTROUTING -o "$WAN_IF" -j MASQUERADE
+
+ipt -C RNS_FWD -i br0 -o "$WAN_IF" -j ACCEPT 2>/dev/null \
+  || ipt -A RNS_FWD -i br0 -o "$WAN_IF" -j ACCEPT
+
+ipt -C RNS_IN -i br0 -p tcp --dport "$ADMIN_PORT" -j ACCEPT 2>/dev/null \
+  || ipt -A RNS_IN -i br0 -p tcp --dport "$ADMIN_PORT" -j ACCEPT
+ipt -C RNS_IN -i "$WAN_IF" -p tcp --dport "$ADMIN_PORT" -j DROP 2>/dev/null \
+  || ipt -A RNS_IN -i "$WAN_IF" -p tcp --dport "$ADMIN_PORT" -j DROP
+
+ipt -t nat -C RNS_PRE -i br0 -p tcp --dport 80 -j REDIRECT --to-ports "$ADMIN_PORT" 2>/dev/null \
+  || ipt -t nat -A RNS_PRE -i br0 -p tcp --dport 80 -j REDIRECT --to-ports "$ADMIN_PORT"
+
+ipt -C RNS_IN -i br0 -p tcp --dport 22 -j ACCEPT 2>/dev/null \
+  || ipt -A RNS_IN -i br0 -p tcp --dport 22 -j ACCEPT
+ipt -C RNS_IN -i "$WAN_IF" -p tcp --dport 22 -j DROP 2>/dev/null \
+  || ipt -A RNS_IN -i "$WAN_IF" -p tcp --dport 22 -j DROP
+
+echo "[gate] firewall armed WAN=$WAN_IF LAN=br0 admin=$ADMIN_PORT (LAN-only)"
+exit 0

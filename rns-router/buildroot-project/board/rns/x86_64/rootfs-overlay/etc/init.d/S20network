@@ -1,0 +1,46 @@
+#!/bin/sh
+LAN_IP="$(sed -n 's/^LAN_IP=//p' /data/rns/config.env 2>/dev/null | head -n1)"
+[ -n "$LAN_IP" ] || LAN_IP=192.168.50.1
+LAN_CIDR="${LAN_IP}/24"
+
+NICS=""
+for n in /sys/class/net/*; do
+  [ -d "$n" ] || continue
+  name=$(basename "$n")
+  [ "$name" = "lo" ] && continue
+  case "$name" in wlan*|wlp*|wlx*) continue ;; esac
+  NICS="$NICS $name"
+done
+NICS=$(echo $NICS | tr ' ' '\n' | sort)
+
+WAN_IF=$(echo "$NICS" | head -n1)
+LAN_IF=$(echo "$NICS" | sed -n '2p')
+[ -n "$LAN_IF" ] || LAN_IF="$WAN_IF"
+
+echo "[network] detected NICs: $NICS"
+echo "[network] WAN=$WAN_IF  LAN=$LAN_IF"
+
+ip link set lo up
+for i in $NICS; do ip link set "$i" up; done
+
+ip link add name br0 type bridge 2>/dev/null || true
+ip link set br0 up
+[ -n "$LAN_IF" ] && ip link set "$LAN_IF" master br0 2>/dev/null || true
+ip addr flush dev br0 2>/dev/null
+ip addr add "$LAN_CIDR" dev br0
+
+if [ -n "$WAN_IF" ] && [ "$WAN_IF" != "$LAN_IF" ]; then
+  ip addr flush dev "$WAN_IF" 2>/dev/null
+  udhcpc -i "$WAN_IF" -b -q -p /var/run/udhcpc.pid 2>/dev/null &
+  echo "[network] udhcpc started on $WAN_IF"
+fi
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+echo 1 > /proc/sys/net/ipv4/conf/all/forwarding
+
+mkdir -p /data/rns
+echo "$WAN_IF" > /data/rns/wan.if
+echo "$LAN_IF" > /data/rns/lan.if
+echo "br0"     > /data/rns/br.if
+
+exit 0

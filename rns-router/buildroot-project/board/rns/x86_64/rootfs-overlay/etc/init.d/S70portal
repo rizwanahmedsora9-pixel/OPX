@@ -1,0 +1,12 @@
+#!/bin/sh
+export RNS_HOME=/usr/share/rns
+export RNS_DATA=/data/rns
+export BB=/bin/busybox
+export RNS_PORT=8080
+export RNS_BB=$BB
+
+sleep 2
+"$BB" sh "$RNS_HOME/bin/rns-pages.sh" >> /var/log/rns-pages.log 2>&1 &
+
+echo "[portal] listener started on :8080 (LAN access only via firewall)"
+exit 0
