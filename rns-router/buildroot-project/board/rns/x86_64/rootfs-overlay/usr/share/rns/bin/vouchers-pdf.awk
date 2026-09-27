@@ -84,7 +84,10 @@ function txt(x, y, sz, fn, t) {
 }
 function rule(x1, y1, x2, y2) { return x1 " " y1 " m " x2 " " y2 " l S\n" }
 function put(s) { out = out s }
-function obj(num) { off[num] = length(out); put(num " 0 obj\n") }
+# xoff, not off: "off" is the scalar UTC offset handed in with -v off= and
+# read by dt(). Reusing one name as a scalar and an array is undefined in awk
+# and silently corrupts the xref table on busybox 1.30.
+function obj(num) { xoff[num] = length(out); put(num " 0 obj\n") }
 function objclose() { put("endobj\n") }
 
 function body_voucher(i,   s, y, rows, k, nr) {
@@ -191,7 +194,7 @@ END {
   xref = length(out)
   put("xref\n0 " (5 + 2 * pages) "\n")
   put("0000000000 65535 f \n")
-  for (i = 1; i <= 4 + 2 * pages; i++) put(sprintf("%010d 00000 n \n", off[i]))
+  for (i = 1; i <= 4 + 2 * pages; i++) put(sprintf("%010d 00000 n \n", xoff[i]))
   put("trailer\n<</Size " (5 + 2 * pages) " /Root 1 0 R>>\nstartxref\n" xref "\n%%EOF\n")
   printf "%s", out
 }

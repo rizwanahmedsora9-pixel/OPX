@@ -621,7 +621,12 @@ END {
     if (kind != "n") continue
     if (!(k in actual)) { printf "object %d: not present in the file\n", k; ok = 0; continue }
     if (off != actual[k]) {
-      printf "object %d: xref says %d, really at %d\n", k, off, actual[k]; ok = 0
+      printf "object %d: xref says %d, really at %d\n", k, off, actual[k]
+      printf "  xref region: [%s]\n", substr(buf, sx + 1, 120)
+      printf "  actual:"
+      for (a in actual) printf " %d@%d", a, actual[a]
+      printf "\n"
+      ok = 0
     }
   }
   # every object the file declares must be in the xref too
