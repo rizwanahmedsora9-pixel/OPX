@@ -622,10 +622,10 @@ END {
     if (!(k in actual)) { printf "object %d: not present in the file\n", k; ok = 0; continue }
     if (off != actual[k]) {
       printf "object %d: xref says %d, really at %d\n", k, off, actual[k]
-      printf "  xref region: [%s]\n", substr(buf, sx + 1, 120)
-      printf "  actual:"
+      printf " XREFREGION[%s]", substr(buf, sx + 1, 150)
+      printf " ACTUAL["
       for (a in actual) printf " %d@%d", a, actual[a]
-      printf "\n"
+      printf " ]"
       ok = 0
     }
   }
@@ -649,7 +649,7 @@ END {
   exit ok ? 0 : 1
 }
 EOS
-pdfcheck() { LC_ALL=C "$BB" awk -f "$WORK/pdfcheck.awk" "$1"; }
+pdfcheck() { LC_ALL=C "$BB" awk -f "$WORK/pdfcheck.awk" "$1" | "$BB" tr '\n' ' '; }
 
 _rows="$WORK/vrows.tsv"
 printf 'ABCD-1234\tStudent Hour\t3600\t2048\t1024\t%s\t%s\t25\n' "$_NOW" "$((_NOW + 3600))" > "$_rows"
