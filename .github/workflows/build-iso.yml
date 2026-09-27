@@ -42,9 +42,10 @@ jobs:
 
       - name: Run the regression suite
         run: |
-          # Surface the failing assertions in the job summary: the raw log needs
-          # a signed-in browser, and "Process completed with exit code 1" tells
-          # you nothing about which check broke.
+          # The raw job log needs a signed-in browser and the default annotation
+          # only says "Process completed with exit code 1", so a red Overlay-tests
+          # check told you nothing about which assertion broke. Re-emit the FAIL
+          # lines as ::error:: annotations, which are readable from the API.
           if sh rns-router/tests/run-tests.sh > suite.log 2>&1; then
             tail -3 suite.log
           else
@@ -53,9 +54,20 @@ jobs:
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             grep -E '^  FAIL|^passed=' suite.log | head -40 >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E '^  FAIL|^passed=' suite.log | head -10 | while IFS= read -r l; do
+              echo "::error::${l#  FAIL  }"
+            done
+            echo "::error::$(grep -E '^passed=' suite.log)"
             tail -3 suite.log
             exit $rc
           fi
+      - name: Keep the suite log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-test-log
+          path: suite.log
+          retention-days: 7
 
   build:
     name: Build ISO
