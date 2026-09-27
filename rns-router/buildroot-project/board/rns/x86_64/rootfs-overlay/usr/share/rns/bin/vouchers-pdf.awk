@@ -188,7 +188,7 @@ END {
         "/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents " cobj " 0 R>>")
     objclose()
     c = content(i)
-    obj(cobj); put("<</Length " length(c) ">>\nstream\n"); put(c); put("\nendstream"); objclose()
+    obj(cobj); put("<</Length " length(c) ">>\nstream\n"); put(c); put("\nendstream\n"); objclose()
   }
 
   xref = length(out)
