@@ -585,38 +585,55 @@ echo "== voucher PDF slips"
 # A structural check: the xref table must point at real objects and every
 # stream length must match its bytes, or the file is not a usable PDF.
 cat > "$WORK/pdfcheck.awk" <<'EOS'
+# Validate a PDF without assuming anything about how it was laid out: find
+# where each "N 0 obj" actually sits by scanning the bytes, then check the xref
+# table agrees. The previous version assumed a fixed 20-byte xref entry stride
+# and derived the entry start from the subsection header, which disagreed with
+# the emitter under busybox awk 1.30 and reported every offset as wrong.
 { buf = buf $0 "\n" }
+{
+  # 0-based byte offset of the first byte of this record
+  line = $0; s = line
+  while (match(s, /[0-9]+ 0 obj/)) {
+    tok = substr(s, RSTART, RLENGTH)
+    n = tok + 0
+    if (!(n in actual)) actual[n] = base + RSTART - 1
+    s = substr(s, RSTART + RLENGTH)
+  }
+  base += length(line) + 1
+}
 END {
   ok = 1
   if (substr(buf, 1, 8) != "%PDF-1.4") { print "no header"; exit 1 }
   last = 0
-  for (i = 1; i + 9 <= length(buf); i++) if (substr(buf, i, 9) == "startxref") last = i
+  for (i = 1; i + 8 <= length(buf); i++) if (substr(buf, i, 9) == "startxref") last = i
   if (last == 0) { print "no startxref"; exit 1 }
   sx = substr(buf, last + 10, 20) + 0
   if (substr(buf, sx + 1, 4) != "xref") { print "startxref misses the table"; exit 1 }
   p = index(substr(buf, sx + 1), "\n") + sx
   hdr = substr(buf, p + 1, 20); sub(/\n.*/, "", hdr)
   split(hdr, a, " "); count = a[2] + 0
-  base = index(substr(buf, p + 1), "\n") + p
+  base2 = index(substr(buf, p + 1), "\n") + p
   for (k = 0; k < count; k++) {
-    e = substr(buf, base + k * 20 + 1, 20)
+    e = substr(buf, base2 + k * 20 + 1, 20)
+    if (length(e) < 20) { printf "xref entry %d is truncated\n", k; ok = 0; continue }
     off = substr(e, 1, 10) + 0; kind = substr(e, 18, 1)
-    if (kind == "n") {
-      num = k
-      want = num " 0 obj"
-      if (substr(buf, off + 1, length(want)) != want) {
-        printf "object %d offset is wrong\n", num; ok = 0
-      }
+    if (kind != "n") continue
+    if (!(k in actual)) { printf "object %d: not present in the file\n", k; ok = 0; continue }
+    if (off != actual[k]) {
+      printf "object %d: xref says %d, really at %d\n", k, off, actual[k]; ok = 0
     }
   }
+  # every object the file declares must be in the xref too
+  for (n in actual) if (n + 0 > count - 1) { printf "object %d is outside the xref\n", n; ok = 0 }
   n = 0
   for (i = 1; i + 13 <= length(buf); i++) {
     if (substr(buf, i, 10) == "<</Length ") {
       j = i + 10; L = ""
       while (substr(buf, j, 1) != ">") { L = L substr(buf, j, 1); j++ }
       L = L + 0
-      s = index(substr(buf, j), "stream\n") + j + 6
-      if (substr(buf, s + L, 10) != "\nendstream") {
+      s2 = index(substr(buf, j), "stream\n") + j + 6
+      if (substr(buf, s2 + L, 10) != "\nendstream") {
         printf "stream %d length is wrong\n", n; ok = 0
       }
       n++
