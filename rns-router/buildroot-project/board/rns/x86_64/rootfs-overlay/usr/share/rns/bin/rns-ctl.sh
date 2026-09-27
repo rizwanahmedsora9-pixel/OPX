@@ -16,10 +16,21 @@ case "$cmd" in
     echo "ssid $(cfg_get SSID RNS) channel $(cfg_get CHANNEL 6)"
     echo "counts $(overview_json)"
     [ -f "$RNS_DATA/PAUSE" ] && echo "gate PAUSED" || echo "gate armed"
+    if online_pay_on; then
+      echo "online pay ON (auto-verify $(pay_autoverify_on && echo on || echo off))"
+      echo "  jazzcash  $(cfg_get JAZZCASH_NUMBER '') $(cfg_get JAZZCASH_NAME '')"
+      echo "  easypaisa $(cfg_get EASYPAISA_NUMBER '') $(cfg_get EASYPAISA_NAME '')"
+    else
+      echo "online pay OFF (no wallet number configured)"
+    fi
     ;;
   packages)
     if [ ! -s "$PFILE" ]; then echo "no packages yet"
     else "$BB" awk -F'|' '$7 != "disabled" {printf "%-14s %-18s %ss %s/%s\n",$1,$2,$3,$4,$5}' "$PFILE"; fi
+    ;;
+  online-packages)
+    if [ ! -s "$OPKGFILE" ]; then echo "no online packages yet"
+    else "$BB" awk -F'|' '$7 != "disabled" {printf "%-14s %-18s %ss %s/%s Rs %s\n",$1,$2,$3,$4,$5,$6}' "$OPKGFILE"; fi
     ;;
   mint) with_lock voucher_mint "$1" "${2:-1}" ""; echo ;;
   expire) expire_enforce ;;
@@ -30,6 +41,46 @@ case "$cmd" in
   resume) rm -f "$RNS_DATA/PAUSE"; fw_rebuild; echo armed ;;
   setpass) _set_pass admin "$1"; echo "password updated" ;;
   clients) clients_json ;;
+  payments) payments_json ;;
+  sales)
+    _from=${1:-}; _to=${2:-}
+    [ -n "$_from" ] || _from=$(ymd_shift "$(today_ymd)" -6)
+    [ -n "$_to" ] || _to=$(today_ymd)
+    _fs=$(ymd_to_epoch "$_from") || _fs=$(ymd_to_epoch "$(today_ymd)")
+    _ts=$(ymd_to_epoch "$_to" end) || _ts=$((_fs + 7 * 86400))
+    sales_json "$_fs" "$_ts"; echo
+    ;;
+  salescsv)
+    _from=${1:-}; _to=${2:-}
+    [ -n "$_from" ] || _from=$(ymd_shift "$(today_ymd)" -6)
+    [ -n "$_to" ] || _to=$(today_ymd)
+    _fs=$(ymd_to_epoch "$_from") || _fs=$(ymd_to_epoch "$(today_ymd)")
+    _ts=$(ymd_to_epoch "$_to" end) || _ts=$((_fs + 7 * 86400))
+    sales_csv "$_fs" "$_ts"
+    ;;
+  pay-on)
+    cfg_set ONLINE_PAY 1
+    if [ -n "$1" ]; then cfg_set JAZZCASH_NUMBER "$(sanitize_wallet "$1")"; fi
+    if [ -n "$2" ]; then cfg_set EASYPAISA_NUMBER "$(sanitize_wallet "$2")"; fi
+    hostapd_apply >/dev/null 2>&1 || true
+    echo "online payments enabled"
+    ;;
+  pay-off) cfg_set ONLINE_PAY 0; echo "online payments disabled" ;;
+  autoverify)
+    case "${1:-}" in
+      on|1)  cfg_set PAY_AUTO_VERIFY 1; echo "auto-verify on" ;;
+      off|0) cfg_set PAY_AUTO_VERIFY 0; echo "auto-verify off" ;;
+      *) echo "auto-verify is $(pay_autoverify_on && echo on || echo off)" ;;
+    esac
+    ;;
+  pay-confirm)
+    _r=$(with_lock pay_confirm "$1"); echo "$_r"
+    ;;
+  pay-reject)
+    _r=$(with_lock pay_reject "$1" "${2:-}"); echo "$_r"
+    ;;
+  backup) with_lock backup_create; echo ;;
+  ap-reload) hostapd_apply && echo "hostapd reloaded" || echo "no wlan interface or hostapd not running" ;;
   ssh)
     case "${2:-status}" in
       on)
@@ -55,5 +106,5 @@ case "$cmd" in
         ;;
     esac
     ;;
-  *) echo "usage: rns-ctl status|packages|mint <id> [n]|expire|kick <mac>|ban <mac>|unban <mac>|pause|resume|setpass <pw>|clients|ssh on|off|status"; exit 1 ;;
+  *) echo "usage: rns-ctl status|packages|online-packages|mint <id> [n]|expire|sales [from to]|salescsv [from to]|kick <mac>|ban <mac>|unban <mac>|pause|resume|setpass <pw>|clients|payments|pay-confirm <id>|pay-reject <id> [note]|pay-on [jazzcash] [easypaisa]|pay-off|autoverify on|off|backup|ap-reload|ssh on|off|status"; exit 1 ;;
 esac
