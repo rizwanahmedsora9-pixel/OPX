@@ -415,6 +415,34 @@ _D=$(ymd_shift_helper() { :; }; today_ymd_d=$("$BB" date '+%Y-%m-%d'); printf '%
 eq "ymd_shift lands on a real date" \
    "7" "$(nstore shift "$_D" -7 | "$BB" awk -F- '{print ($1>2000 && $2>=1 && $2<=12 && $3>=1 && $3<=31) ? 7 : 0}')"
 
+# Regression for a silent data-loss bug: awk's -v coerces a value that is a
+# *valid numeric string* into a number, and a field that looks numeric is
+# compared numerically too. Voucher codes are random hex, so codes like
+# 06E82054 or 124E6045 are valid numbers (they overflow to inf) and a plain
+# "$1==c" then compares inf to inf and never finds the row -- a customer's paid
+# voucher would simply not resolve. Every field==key awk in the store now
+# prefixes both sides with a letter to force a string compare. This runs in its
+# own data dir so the planted rows do not disturb the sales report below.
+echo "== numeric-looking codes still resolve"
+mkdir -p "$WORK/regdata"
+nreg() { BB=$BB RNS_LAB=1 RNS_HOME="$RNSH" RNS_DATA="$WORK/regdata" "$BB" sh "$WORK/newstore.sh" "$@"; }
+nreglock() { BB=$BB RNS_LAB=1 RNS_HOME="$RNSH" RNS_DATA="$WORK/regdata" \
+  "$BB" sh -c '. "$RNS_HOME/bin/common.sh"; . "$RNS_HOME/bin/store.sh"; . "$RNS_HOME/bin/net.sh"; store_init; with_lock "$@"' _ "$@"; }
+for NCODE in 06E82054 124E6045 12345678 1E5 000E0000 81F60BBF; do
+  _n=$(nreg now)
+  printf '%s|1 Hour|3600|4000|1000|active|02:00:00:00:00:77|10.9.9.77|%s|%s|%s||100\n' \
+    "$NCODE" "$_n" "$((_n + 3600))" "$_n" >> "$WORK/regdata/database/vouchers.tsv"
+  eq "a code awk reads as a number is stored" "$NCODE" \
+     "$(nreg vrow "$NCODE" | "$BB" cut -d'|' -f1)"
+  eq "the paying device still resolves it" "$NCODE" \
+     "$(nreg bound 02:00:00:00:00:77 | "$BB" cut -d'|' -f1)"
+  eq "revoking a numeric-looking code works" "ok" \
+     "$(nreglock voucher_revoke "$NCODE" >/dev/null 2>&1 && echo ok)"
+  eq "and the revoke actually landed" "revoked" \
+     "$(nreg vrow "$NCODE" | "$BB" cut -d'|' -f6)"
+done
+unset NCODE _n
+
 echo "== online packages"
 eq "online_package_upsert" "ok" "$(nstore opkg op1 "Student Hour" 3600 2048 1024 25 30 hour >/dev/null && echo ok)"
 has '"id":"op1"' "$(nstore opkgjson)" "online_packages_json lists the package"

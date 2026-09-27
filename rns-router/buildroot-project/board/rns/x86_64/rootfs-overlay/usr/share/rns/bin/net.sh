@@ -209,7 +209,7 @@ deauth_mac() {
   _mac=$(sanitize_mac "$1")
   [ -n "$_mac" ] || return 0
   is_lab && return 0
-  _ip=$( "$BB" awk -F'|' -v m="$_mac" '$1==m {print $2; exit}' "$CFILE" 2>/dev/null )
+  _ip=$( "$BB" awk -F'|' -v m="k$_mac" '"k" $1==m {print $2; exit}' "$CFILE" 2>/dev/null )
   if [ -n "$_ip" ] && command -v conntrack >/dev/null 2>&1; then
     conntrack -D -s "$_ip" >/dev/null 2>&1 || true
     conntrack -D -d "$_ip" >/dev/null 2>&1 || true
@@ -256,7 +256,7 @@ neigh_scan() {
   is_lab && return 0
   [ -f /proc/net/arp ] || return 0
   _lan=$(lan_if)
-  "$BB" awk -v ifc="$_lan" '$6==ifc && $4 != "00:00:00:00:00:00" {print $4, $1}' /proc/net/arp \
+  "$BB" awk -v ifc="k$_lan" '"k" $6==ifc && $4 != "00:00:00:00:00:00" {print $4, $1}' /proc/net/arp \
     | while read -r mac ip; do
         client_touch "$mac" "$ip" ""
       done

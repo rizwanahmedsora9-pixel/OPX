@@ -125,7 +125,7 @@ package_upsert() {
   [ -n "$_id" ] && [ -n "$_label" ] && [ -n "$_sec" ] && [ -n "$_down" ] && [ -n "$_up" ] || {
     printf 'package requires id, name, duration and speeds'; return 1; }
   _tmp="${PFILE}.tmp"
-  "$BB" awk -F'|' -v OFS='|' -v id="$_id" '$1 != id {print}' "$PFILE" > "$_tmp"
+  "$BB" awk -F'|' -v OFS='|' -v id="k$_id" '"k" $1 != id {print}' "$PFILE" > "$_tmp"
   printf '%s|%s|%s|%s|%s|%s|active|%s|%s\n' \
     "$_id" "$_label" "$_sec" "$_down" "$_up" "$_price" "$_rate" "$_ru" >> "$_tmp"
   mv "$_tmp" "$PFILE"
@@ -133,7 +133,7 @@ package_upsert() {
 }
 
 package_row() {
-  "$BB" awk -F'|' -v id="$1" '$1==id && ($7=="" || $7=="active") {print; exit}' "$PFILE"
+  "$BB" awk -F'|' -v id="k$1" '"k" $1==id && ($7=="" || $7=="active") {print; exit}' "$PFILE"
 }
 
 package_delete() {
@@ -142,7 +142,7 @@ package_delete() {
   _row=$(package_row "$_id")
   [ -n "$_row" ] || { printf 'not found'; return 1; }
   _tmp="${PFILE}.tmp"
-  "$BB" awk -F'|' -v id="$_id" '$1 != id {print}' "$PFILE" > "$_tmp"
+  "$BB" awk -F'|' -v id="k$_id" '"k" $1 != id {print}' "$PFILE" > "$_tmp"
   mv "$_tmp" "$PFILE"
   printf 'deleted'
 }
@@ -179,7 +179,7 @@ _new_code() {
 }
 
 _code_exists() {
-  "$BB" awk -F'|' -v c="$1" '$1==c {found=1} END{exit !found}' "$VFILE"
+  "$BB" awk -F'|' -v c="k$1" '"k" $1==c {found=1} END{exit !found}' "$VFILE"
 }
 
 fmt_code() {
@@ -245,13 +245,20 @@ voucher_mint_bound() {
   printf 'ok|%s|%s|%s|%s|%s' "$_code" "$_label" "$_exp" "$_down" "$_up"
 }
 
+# NOTE on the "k" prefixes below: awk's -v turns a value that is a *valid
+# numeric string* into a number, and a field that looks numeric is compared
+# numerically too. Voucher codes and pay ids are random hex/base32, so values
+# like 06E82054 or 124E6045 are valid numbers (both overflow to inf), and a
+# plain "$1==c" then compares inf to inf and silently misses the row -- a
+# customer's paid voucher would simply not be found. Prefixing both sides with
+# a letter forces a string compare. Every field==key awk below does this.
 _voucher_row() {
-  "$BB" awk -F'|' -v c="$1" '$1==c {print; exit}' "$VFILE"
+  "$BB" awk -F'|' -v c="k$1" '"k" $1==c {print; exit}' "$VFILE"
 }
 
 voucher_set_status() {
   _tmp="${VFILE}.tmp"
-  "$BB" awk -F'|' -v OFS='|' -v c="$1" -v st="$2" '$1==c { $6=st } {print}' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
+  "$BB" awk -F'|' -v OFS='|' -v c="k$1" -v st="$2" '"k" $1==c { $6=st } {print}' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
 }
 
 voucher_revoke() {
@@ -271,7 +278,7 @@ voucher_delete() {
   esac
   printf '%s|delete|%s\n' "$(now_epoch)" "$_row" >> "$HFILE"
   _tmp="${VFILE}.tmp"
-  "$BB" awk -F'|' -v c="$_code" '$1!=c {print}' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
+  "$BB" awk -F'|' -v c="k$_code" '"k" $1!=c {print}' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
   log_event delete "$_code"
 }
 
@@ -281,8 +288,8 @@ voucher_unbind() {
   [ -n "$_row" ] || { printf 'not found'; return 1; }
   printf '%s|unbind|%s\n' "$(now_epoch)" "$_row" >> "$HFILE"
   _tmp="${VFILE}.tmp"
-  "$BB" awk -F'|' -v OFS='|' -v c="$_code" '
-    $1==c { $6="new"; $7=""; $8=""; $9=""; $10="" }
+  "$BB" awk -F'|' -v OFS='|' -v c="k$_code" '
+    "k" $1==c { $6="new"; $7=""; $8=""; $9=""; $10="" }
     {print}' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
   log_event unbind "$_code"
 }
@@ -315,8 +322,8 @@ voucher_expire_for_mac() {
   [ -n "$_mac" ] || { printf '0'; return 0; }
   _now=$(now_epoch)
   _tmp="${VFILE}.kickv.$$"; _cnt="${VFILE}.kickn.$$"
-  "$BB" awk -F'|' -v OFS='|' -v m="$_mac" -v now="$_now" -v cf="$_cnt" '
-    $6=="active" && $7==m { $6="expired"; if ($10 !~ /^[0-9]+$/ || $10+0 > now+0) $10=now; n++ }
+  "$BB" awk -F'|' -v OFS='|' -v m="k$_mac" -v now="$_now" -v cf="$_cnt" '
+    $6=="active" && "k" $7==m { $6="expired"; if ($10 !~ /^[0-9]+$/ || $10+0 > now+0) $10=now; n++ }
     {print}
     END { printf "%d", n+0 > cf }' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
   _n=$(cat "$_cnt" 2>/dev/null); rm -f "$_cnt"
@@ -343,7 +350,7 @@ rate_allow() {
 arp_mac() {
   _ip=$1; _mac=""
   if [ -f /proc/net/arp ]; then
-    _mac=$( "$BB" awk -v ip="$_ip" '$1==ip && $4!="00:00:00:00:00:00" {print $4; exit}' /proc/net/arp )
+    _mac=$( "$BB" awk -v ip="k$_ip" '"k" $1==ip && $4!="00:00:00:00:00:00" {print $4; exit}' /proc/net/arp )
   fi
   sanitize_mac "$_mac"
 }
@@ -362,7 +369,7 @@ mac_for_ip() {
 
 client_state() {
   _mac=$(sanitize_mac "$1")
-  _state=$("$BB" awk -F'|' -v m="$_mac" '$1==m {print $2; exit}' "$CSTATE" 2>/dev/null)
+  _state=$("$BB" awk -F'|' -v m="k$_mac" '"k" $1==m {print $2; exit}' "$CSTATE" 2>/dev/null)
   [ -n "$_state" ] && printf '%s' "$_state" || printf 'active'
 }
 
@@ -372,7 +379,7 @@ client_set_state() {
   case "$_state" in active|kicked|banned) ;; *) printf 'invalid'; return 1 ;; esac
   [ -n "$_mac" ] || { printf 'missing mac'; return 1; }
   _tmp="${CSTATE}.tmp.$$"
-  "$BB" awk -F'|' -v OFS='|' -v m="$_mac" '$1!=m {print}' "$CSTATE" > "$_tmp"
+  "$BB" awk -F'|' -v OFS='|' -v m="k$_mac" '"k" $1!=m {print}' "$CSTATE" > "$_tmp"
   if [ "$_state" = "active" ]; then mv "$_tmp" "$CSTATE"
   else
     printf '%s|%s|%s\n' "$_mac" "$_state" "$(now_epoch)" >> "$_tmp"
@@ -392,9 +399,9 @@ client_touch() {
   _mac=$(sanitize_mac "$1"); _ip=$2; _host=$(sanitize_token "$3")
   [ -n "$_mac" ] || return 0
   _now=$(now_epoch); _tmp="${CFILE}.tmp"
-  if "$BB" awk -F'|' -v m="$_mac" '$1==m {found=1} END{exit !found}' "$CFILE"; then
-    "$BB" awk -F'|' -v OFS='|' -v m="$_mac" -v ip="$_ip" -v h="$_host" -v now="$_now" '
-      $1==m { if (ip != "") $2=ip; if (h != "") $3=h; $5=now }
+  if "$BB" awk -F'|' -v m="k$_mac" '"k" $1==m {found=1} END{exit !found}' "$CFILE"; then
+    "$BB" awk -F'|' -v OFS='|' -v m="k$_mac" -v ip="$_ip" -v h="$_host" -v now="$_now" '
+      "k" $1==m { if (ip != "") $2=ip; if (h != "") $3=h; $5=now }
       {print}' "$CFILE" > "$_tmp" && mv "$_tmp" "$CFILE"
   else
     printf '%s|%s|%s|%s|%s||||\n' "$_mac" "$_ip" "$_host" "$_now" "$_now" >> "$CFILE"
@@ -437,8 +444,8 @@ voucher_redeem() {
       [ "$_was_kicked" -eq 1 ] && voucher_expire_for_mac "$_mac" >/dev/null
       _exp=$((_now + _sec))
       _tmp="${VFILE}.tmp"
-      "$BB" awk -F'|' -v OFS='|' -v c="$_code" -v mac="$_mac" -v ip="$_ip" -v now="$_now" -v ends="$_exp" '
-        $1==c { $6="active"; $7=mac; $8=ip; $9=now; $10=ends; print; next }
+      "$BB" awk -F'|' -v OFS='|' -v c="k$_code" -v mac="$_mac" -v ip="$_ip" -v now="$_now" -v ends="$_exp" '
+        "k" $1==c { $6="active"; $7=mac; $8=ip; $9=now; $10=ends; print; next }
         {print}' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
       client_touch "$_mac" "$_ip" ""
       if [ "$_was_kicked" -eq 1 ]; then client_set_state "$_mac" active >/dev/null 2>&1 || true; fi
@@ -453,8 +460,8 @@ voucher_set_ip() {
   _mac=$(sanitize_mac "$1"); _ip=$(printf '%s' "$2" | "$BB" tr -cd '0-9.')
   [ -n "$_mac" ] && [ -n "$_ip" ] || return 1
   _tmp="${VFILE}.tmp"
-  "$BB" awk -F'|' -v OFS='|' -v m="$_mac" -v ip="$_ip" '
-    $6=="active" && $7==m && $8 != ip { $8=ip }
+  "$BB" awk -F'|' -v OFS='|' -v m="k$_mac" -v ip="$_ip" '
+    $6=="active" && "k" $7==m && $8 != ip { $8=ip }
     {print}' "$VFILE" > "$_tmp" && mv "$_tmp" "$VFILE"
 }
 
@@ -463,8 +470,8 @@ voucher_for_mac() {
   [ -n "$_mac" ] || return 1
   client_is_offline "$_mac" && return 1
   _now=$(now_epoch)
-  "$BB" awk -F'|' -v m="$_mac" -v now="$_now" '
-    $6=="active" && $7==m && $10 ~ /^[0-9]+$/ && $10+0 > now+0 {print; exit}' "$VFILE"
+  "$BB" awk -F'|' -v m="k$_mac" -v now="$_now" '
+    $6=="active" && "k" $7==m && $10 ~ /^[0-9]+$/ && $10+0 > now+0 {print; exit}' "$VFILE"
 }
 
 vouchers_json() {
@@ -530,7 +537,7 @@ clients_json() {
 }
 
 count_status() {
-  "$BB" awk -F'|' -v s="$1" '$6==s {n++} END{print n+0}' "$VFILE"
+  "$BB" awk -F'|' -v s="k$1" '"k" $6==s {n++} END{print n+0}' "$VFILE"
 }
 
 overview_json() {
@@ -724,7 +731,7 @@ online_package_upsert() {
     printf 'online package requires id, name, duration and speeds'; return 1; }
   [ -n "$_price" ] || { printf 'online package requires a price'; return 1; }
   _tmp="${OPKGFILE}.tmp"
-  "$BB" awk -F'|' -v OFS='|' -v id="$_id" '$1 != id {print}' "$OPKGFILE" > "$_tmp"
+  "$BB" awk -F'|' -v OFS='|' -v id="k$_id" '"k" $1 != id {print}' "$OPKGFILE" > "$_tmp"
   printf '%s|%s|%s|%s|%s|%s|active|%s|%s\n' \
     "$_id" "$_label" "$_sec" "$_down" "$_up" "$_price" "$_rate" "$_ru" >> "$_tmp"
   mv "$_tmp" "$OPKGFILE"
@@ -732,7 +739,7 @@ online_package_upsert() {
 }
 
 online_package_row() {
-  "$BB" awk -F'|' -v id="$1" '$1==id && ($7=="" || $7=="active") {print; exit}' "$OPKGFILE"
+  "$BB" awk -F'|' -v id="k$1" '"k" $1==id && ($7=="" || $7=="active") {print; exit}' "$OPKGFILE"
 }
 
 online_package_delete() {
@@ -741,7 +748,7 @@ online_package_delete() {
   _row=$(online_package_row "$_id")
   [ -n "$_row" ] || { printf 'not found'; return 1; }
   _tmp="${OPKGFILE}.tmp"
-  "$BB" awk -F'|' -v id="$_id" '$1 != id {print}' "$OPKGFILE" > "$_tmp"
+  "$BB" awk -F'|' -v id="k$_id" '"k" $1 != id {print}' "$OPKGFILE" > "$_tmp"
   mv "$_tmp" "$OPKGFILE"
   printf 'deleted'
 }
@@ -783,7 +790,7 @@ pay_init() {
   _ref=""; _try=0
   while [ "$_try" -lt 20 ]; do
     _ref=$(rand_token 8)
-    "$BB" awk -F'|' -v r="$_ref" '$2==r {f=1} END{exit !f}' "$REFFILE" 2>/dev/null || break
+    "$BB" awk -F'|' -v r="k$_ref" '"k" $2==r {f=1} END{exit !f}' "$REFFILE" 2>/dev/null || break
     _try=$((_try + 1))
   done
   [ -n "$_ref" ] || { printf 'could not allocate a reference'; return 1; }
@@ -798,11 +805,11 @@ pay_init() {
 pay_ref_take() {
   _ref=$1; _mac=$2
   _now=$(now_epoch)
-  _row=$("$BB" awk -F'|' -v r="$_ref" -v now="$_now" -v m="$_mac" '
-    $1==r && $7 ~ /^[0-9]+$/ && $7+0 > now && $4==m {print; exit}' "$REFFILE" 2>/dev/null)
+  _row=$("$BB" awk -F'|' -v r="k$_ref" -v now="$_now" -v m="k$_mac" '
+    "k" $1==r && $7 ~ /^[0-9]+$/ && $7+0 > now && "k" $4==m {print; exit}' "$REFFILE" 2>/dev/null)
   [ -n "$_row" ] || return 1
   _tmp="${REFFILE}.tmp"
-  "$BB" awk -F'|' -v r="$_ref" '$1 != r {print}' "$REFFILE" > "$_tmp" && mv "$_tmp" "$REFFILE"
+  "$BB" awk -F'|' -v r="k$_ref" '"k" $1 != r {print}' "$REFFILE" > "$_tmp" && mv "$_tmp" "$REFFILE"
   printf '%s' "$_row"
 }
 
@@ -850,7 +857,7 @@ pay_submit() {
 }
 
 pay_row() {
-  "$BB" awk -F'|' -v id="$1" '$1==id {print; exit}' "$PAYFILE" 2>/dev/null
+  "$BB" awk -F'|' -v id="k$1" '"k" $1==id {print; exit}' "$PAYFILE" 2>/dev/null
 }
 
 # pay_id|ref|mac|ip|package_id|package_label|seconds|down|up|method|tid|amount|
@@ -858,9 +865,9 @@ pay_row() {
 pay_set_status() {
   _id=$1; _st=$2; _note=$3; _vcode=$4
   _tmp="${PAYFILE}.tmp"
-  "$BB" awk -F'|' -v OFS='|' -v id="$_id" -v st="$_st" -v note="$_note" -v vc="$_vcode" \
+  "$BB" awk -F'|' -v OFS='|' -v id="k$_id" -v st="$_st" -v note="$_note" -v vc="$_vcode" \
     -v now="$(now_epoch)" '
-    $1==id { $13=st; $15=now; if (note != "") $16=note; if (vc != "") $17=vc }
+    "k" $1==id { $13=st; $15=now; if (note != "") $16=note; if (vc != "") $17=vc }
     {print}' "$PAYFILE" > "$_tmp" && mv "$_tmp" "$PAYFILE"
 }
 
