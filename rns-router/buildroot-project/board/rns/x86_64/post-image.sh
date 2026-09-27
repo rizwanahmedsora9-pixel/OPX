@@ -58,11 +58,19 @@ CFG
 
 # Buildroot puts host-xorriso in $(HOST_DIR)/bin, which is on PATH while the
 # post-image script runs. Fall back to a host mkisofs/genisoimage so the build
-# still works without it.
-MKISO=""
-for _c in xorriso genisoimage mkisofs; do
-  if command -v "$_c" >/dev/null 2>&1; then MKISO="$_c"; break; fi
-done
+# still works without it. RNS_MKISO pins the choice (used by the test suite,
+# and handy if a build host has more than one installed).
+MKISO="${RNS_MKISO:-}"
+if [ -n "$MKISO" ]; then
+  if ! command -v "$MKISO" >/dev/null 2>&1; then
+    echo "post-image: RNS_MKISO=$MKISO is not on PATH." >&2
+    exit 1
+  fi
+else
+  for _c in xorriso genisoimage mkisofs; do
+    if command -v "$_c" >/dev/null 2>&1; then MKISO="$_c"; break; fi
+  done
+fi
 if [ -z "$MKISO" ]; then
   echo "post-image: no xorriso/genisoimage/mkisofs found." >&2
   echo "post-image: add BR2_PACKAGE_HOST_XORRISO=y to the defconfig." >&2

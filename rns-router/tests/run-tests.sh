@@ -239,7 +239,10 @@ exit 0
 EOS
 chmod 755 "$WORK/bin/xorriso"
 
-PATH="$WORK/bin:$PATH" "$BB" sh "$BOARD/post-image.sh" "$IMG" > "$WORK/pi.out" 2>&1
+# RNS_MKISO pins the writer: GitHub's runners ship a real xorriso, and a
+# search-based test would silently exercise that instead of the stub.
+PATH="$WORK/bin:$PATH" RNS_MKISO=xorriso \
+  "$BB" sh "$BOARD/post-image.sh" "$IMG" > "$WORK/pi.out" 2>&1
 eq "post-image exits 0 with a 12 MB ISO" "0" "$?"
 has 'over the 10 MB target' "$(cat "$WORK/pi.out")" "large ISO warns instead of failing"
 has 'mkisofs' "$(cat "$WORK/mkiso.args" 2>/dev/null)" "xorriso invoked in mkisofs mode"
@@ -263,20 +266,18 @@ out=$(PATH="$WORK/bin:$PATH" "$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || tru
 has 'BR2_TARGET_SYSLINUX_C32' "$out" "a missing ldlinux.c32 is refused with the fix"
 mv "$WORK/ldlinux.c32.bak" "$IMG/syslinux/ldlinux.c32"
 
-# genisoimage fallback, and a clear error when no writer exists at all
+# The non-xorriso invocation path, and a writer that cannot be found.
 mkdir -p "$WORK/bin2"; cp "$WORK/bin/xorriso" "$WORK/bin2/genisoimage"
 rm -f "$IMG/rns-router.iso"
-PATH="$WORK/bin2:$PATH" "$BB" sh "$BOARD/post-image.sh" "$IMG" >/dev/null 2>&1
-eq "falls back to genisoimage" "0" "$?"
+PATH="$WORK/bin2:$PATH" RNS_MKISO=genisoimage \
+  "$BB" sh "$BOARD/post-image.sh" "$IMG" >/dev/null 2>&1
+eq "honours RNS_MKISO=genisoimage" "0" "$?"
 [ -f "$IMG/rns-router.iso" ] && ok "genisoimage path writes the iso" || bad "genisoimage path wrote nothing"
 
 rm -f "$IMG/rns-router.iso"
-if command -v xorriso >/dev/null 2>&1 || command -v genisoimage >/dev/null 2>&1 || command -v mkisofs >/dev/null 2>&1; then
-  skip "this host has an ISO writer — missing-writer path not tested"
-else
-  out=$("$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
-  has 'BR2_PACKAGE_HOST_XORRISO' "$out" "missing ISO writer explains how to fix it"
-fi
+out=$(RNS_MKISO=/nonexistent-iso-writer "$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
+has 'not on PATH' "$out" "an unusable RNS_MKISO is reported instead of a mystery failure"
+
 
 # ----------------------------------------------------------------- CI workflow
 echo "== CI workflow"
