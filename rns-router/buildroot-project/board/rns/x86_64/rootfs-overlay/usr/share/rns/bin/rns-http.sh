@@ -5,7 +5,11 @@ RNS_EXTRA_HDR=""
 . "$RNS_HOME/bin/net.sh"
 
 store_init
+# resolve_client_ip (common.sh) reads the peer address the listener exports
+# and validates it as IPv4; it replaced a call to a helper that never
+# existed, which left CLIENT_IP empty and made every redemption fail.
 CLIENT_IP=$(resolve_client_ip 2>/dev/null || true)
+export CLIENT_IP
 
 send_raw() {
   _status=$1; _ctype=$2; _file=$3
@@ -144,7 +148,8 @@ do_me() {
 }
 
 status_public() {
-  send_json "200 OK" "$(printf '{"ok":true,"lab":false,"setup_required":%s,"brand":"%s","shop":"%s","ssid":"%s","portal_port":%s}' \
+  send_json "200 OK" "$(printf '{"ok":true,"lab":%s,"setup_required":%s,"brand":"%s","shop":"%s","ssid":"%s","portal_port":%s}' \
+    "$(is_lab && printf 'true' || printf 'false')" \
     "$(auth_needed && echo true || echo false)" \
     "$(json_escape "$(cfg_get BRAND RNS)")" \
     "$(json_escape "$(cfg_get SHOP "RNS Internet")")" \

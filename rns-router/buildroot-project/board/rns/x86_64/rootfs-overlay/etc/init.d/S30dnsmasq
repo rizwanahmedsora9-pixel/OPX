@@ -1,14 +1,35 @@
 #!/bin/sh
-[ -f /etc/dnsmasq.conf ] || exit 0
+# DHCP + DNS for the LAN.
+#
+# /etc lives on a read-only squashfs. Editing the packaged dnsmasq.conf in
+# place therefore failed on every boot, and dnsmasq came up with the baked-in
+# 192.168.50.0/24 defaults even when LAN_IP said otherwise. The config is
+# generated on /data and passed explicitly instead.
 
-LAN_IP=$(sed -n 's/^LAN_IP=//p' /data/rns/config.env 2>/dev/null | head -n1)
+DATA="${RNS_DATA:-/data/rns}"
+mkdir -p "$DATA" 2>/dev/null
+
+LAN_IP=$(sed -n 's/^LAN_IP=//p' "$DATA/config.env" 2>/dev/null | head -n1)
 [ -n "$LAN_IP" ] || LAN_IP=192.168.50.1
 NET=$(echo "$LAN_IP" | cut -d. -f1-3)
 
-sed -i "s|^dhcp-range=.*|dhcp-range=${NET}.50,${NET}.200,12h|" /etc/dnsmasq.conf
-sed -i "s|^dhcp-option=option:router.*|dhcp-option=option:router,${LAN_IP}|" /etc/dnsmasq.conf
-sed -i "s|^dhcp-option=option:dns-server.*|dhcp-option=option:dns-server,${LAN_IP}|" /etc/dnsmasq.conf
+CONF="$DATA/dnsmasq.conf"
+cat > "$CONF" <<EOF
+interface=br0
+bind-interfaces
+dhcp-range=${NET}.50,${NET}.200,12h
+dhcp-option=option:router,${LAN_IP}
+dhcp-option=option:dns-server,${LAN_IP}
+no-resolv
+server=1.1.1.1
+server=8.8.8.8
+cache-size=500
+log-queries=no
+EOF
 
-/usr/sbin/dnsmasq --conf-file=/etc/dnsmasq.conf --pid-file=/var/run/dnsmasq.pid
-echo "[dnsmasq] started on br0"
+if "${DNSMASQ_BIN:-/usr/sbin/dnsmasq}" --conf-file="$CONF" --pid-file=/var/run/dnsmasq.pid; then
+  echo "[dnsmasq] started on br0 range ${NET}.50-${NET}.200 gw ${LAN_IP}"
+else
+  echo "[dnsmasq] FAILED to start with $CONF"
+fi
 exit 0

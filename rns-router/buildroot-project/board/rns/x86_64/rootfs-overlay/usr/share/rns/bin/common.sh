@@ -57,6 +57,42 @@ sanitize_mac() {
   printf '%s' "$1" | "$BB" tr 'A-F' 'a-f' | "$BB" sed 's/[^0-9a-f:]//g' | "$BB" cut -c1-17
 }
 
+# Normalise an address to dotted IPv4. Accepts plain IPv4 and the
+# IPv4-mapped form socat/httpd can hand us (::ffff:1.2.3.4). Prints
+# nothing when the input is not a usable IPv4 address, so callers can
+# test with [ -n ... ] instead of trusting the raw value.
+ipv4_norm() {
+  _s=$(printf '%s' "$1" | "$BB" tr -d '[] \t\r\n')
+  _s=$(printf '%s' "$_s" | "$BB" sed 's/^::[fF][fF][fF][fF]://')
+  printf '%s' "$_s" | "$BB" awk -F. '
+    NF == 4 {
+      ok = 1
+      for (i = 1; i <= 4; i++) {
+        if ($i !~ /^[0-9]+$/)      { ok = 0; break }
+        if (length($i) > 3)        { ok = 0; break }
+        if (length($i) > 1 && substr($i,1,1) == "0") { ok = 0; break }
+        if ($i + 0 > 255)          { ok = 0; break }
+      }
+      if (ok) printf "%d.%d.%d.%d", $1+0, $2+0, $3+0, $4+0
+    }'
+}
+
+# Where did this request come from? Every listener we support publishes the
+# peer address in the environment: socat sets SOCAT_PEERADDR, busybox httpd
+# sets REMOTE_ADDR, ucspi-style servers set TCPREMOTEIP. RNS_CLIENT_IP is an
+# explicit override for tests and for the nc fallback, which cannot see the
+# peer at all.
+resolve_client_ip() {
+  _ip=""
+  for _v in "${CLIENT_IP:-}" "${SOCAT_PEERADDR:-}" "${REMOTE_ADDR:-}" \
+            "${TCPREMOTEIP:-}" "${RNS_CLIENT_IP:-}"; do
+    [ -n "$_v" ] || continue
+    _ip=$(ipv4_norm "$_v")
+    [ -n "$_ip" ] && break
+  done
+  printf '%s' "$_ip"
+}
+
 hex_byte() {
   case "$1" in
     [0-9A-Fa-f][0-9A-Fa-f]) "$BB" printf "\\x$1" ;;

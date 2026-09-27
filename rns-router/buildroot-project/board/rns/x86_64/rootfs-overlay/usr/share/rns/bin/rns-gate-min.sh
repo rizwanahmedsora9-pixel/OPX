@@ -19,6 +19,13 @@ ipt -C RNS_FWD -i "$LAN" -p udp --dport 53 -j RETURN 2>/dev/null \
   || ipt -A RNS_FWD -i "$LAN" -p udp --dport 53 -j RETURN
 ipt -C RNS_FWD -i "$LAN" -p tcp --dport 53 -j RETURN 2>/dev/null \
   || ipt -A RNS_FWD -i "$LAN" -p tcp --dport 53 -j RETURN
+# Same DHCP pair net.sh fw_rebuild() probes for. Keeping this chain identical
+# to fw_rebuild's base set means the first sweep does not have to flush and
+# rebuild it.
+ipt -C RNS_FWD -i "$LAN" -p udp --dport 67 -j RETURN 2>/dev/null \
+  || ipt -A RNS_FWD -i "$LAN" -p udp --dport 67 -j RETURN
+ipt -C RNS_FWD -i "$LAN" -p udp --sport 68 -j RETURN 2>/dev/null \
+  || ipt -A RNS_FWD -i "$LAN" -p udp --sport 68 -j RETURN
 
 ipt -t nat -C RNS_PRE -i "$LAN" -p tcp --dport 80 -j REDIRECT --to-ports "$PORT" 2>/dev/null \
   || ipt -t nat -A RNS_PRE -i "$LAN" -p tcp --dport 80 -j REDIRECT --to-ports "$PORT"

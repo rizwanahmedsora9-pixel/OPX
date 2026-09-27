@@ -17,6 +17,11 @@ fi
 export BB
 export RNS_BB=$BB
 
+# common.sh sources nothing and pulls in no network or storage code, so the
+# front stays the isolated shell it is meant to be: store/net are still only
+# reached through rns-http.sh.
+if [ -f "$RNS_HOME/bin/common.sh" ]; then . "$RNS_HOME/bin/common.sh"; fi
+
 SPOOL=/tmp
 [ -w "$RNS_DATA" ] && SPOOL="$RNS_DATA"
 PAGES_LOG=/tmp/rns_pages.log
@@ -123,7 +128,21 @@ is_probe() {
 }
 
 read_request || exit 0
-[ -z "${CLIENT_IP:-}" ] && CLIENT_IP=""
+
+# The peer address is published by the listener in the environment. Without
+# it, voucher redemption cannot map a request to a device, so say so in the
+# log instead of failing silently the way an undefined helper would.
+if command -v resolve_client_ip >/dev/null 2>&1; then
+  CLIENT_IP=$(resolve_client_ip 2>/dev/null || true)
+else
+  CLIENT_IP=""
+fi
+export CLIENT_IP
+if [ -z "$CLIENT_IP" ] && [ "${RNS_LAB:-0}" != "1" ]; then
+  printf '%s front: no peer address for %s %s (listener must export SOCAT_PEERADDR)\n' \
+    "$("$BB" date +%s 2>/dev/null)" "${RNS_METHOD:-?}" "${RNS_PATH:-?}" \
+    >> "$PAGES_LOG" 2>/dev/null
+fi
 
 case "$RNS_PATH" in
   /favicon.ico) send_no_content ;;

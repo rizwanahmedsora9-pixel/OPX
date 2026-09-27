@@ -8,8 +8,9 @@ if [ -z "${BB:-}" ]; then BB=/bin/busybox; [ -x "$BB" ] || BB=busybox; fi
 export BB
 export RNS_BB=$BB
 
-STATE=/data/rns
+STATE="${RNS_DATA:-/data/rns}"
 mkdir -p "$STATE" 2>/dev/null || true
+[ -w "$STATE" ] || { STATE=/tmp; mkdir -p "$STATE" 2>/dev/null || true; }
 PORT=${RNS_PORT:-8080}
 LOG=/tmp/rns_hotspot.log
 
@@ -50,7 +51,7 @@ wait_for_pages() {
 }
 
 write_wrap() {
-  _wrap="$STATE/nc-wrap.sh"
+  _wrap="$STATE/front-wrap.sh"
   cat > "$_wrap" <<WEOF
 #!/bin/sh
 export RNS_HOME='$RNS_HOME'
@@ -64,25 +65,40 @@ WEOF
   chmod 755 "$_wrap" 2>/dev/null || true
 }
 
-start_nc() {
+# Preferred listener. socat forks one child per connection and, unlike
+# busybox nc -e, hands the child the peer address in $SOCAT_PEERADDR — which
+# is the only way the portal can tell one phone from another.
+start_socat() {
+  command -v socat >/dev/null 2>&1 || return 1
   write_wrap
-  "$BB" nc -lk -p "$PORT" -e "$STATE/nc-wrap.sh" >> "$LOG" 2>&1 < /dev/null &
+  socat "TCP-LISTEN:$PORT,reuseaddr,fork,bind=0.0.0.0" \
+        "EXEC:$STATE/front-wrap.sh" >> "$LOG" 2>&1 < /dev/null &
+  echo $! > "$STATE/httpd.pid"
+  printf 'front\n' > "$STATE/httpd.mode"
+  printf 'socat\n' > "$STATE/httpd.engine"
+}
+
+start_nc() {
+  "$BB" nc --help 2>&1 | "$BB" grep -q -- '-e' || return 1
+  write_wrap
+  "$BB" nc -lk -p "$PORT" -e "$STATE/front-wrap.sh" >> "$LOG" 2>&1 < /dev/null &
   echo $! > "$STATE/httpd.pid"
   printf 'front\n' > "$STATE/httpd.mode"
   printf 'nc-e\n' > "$STATE/httpd.engine"
 }
 
 start_nc_loop() {
+  "$BB" nc --help 2>&1 | "$BB" grep -q -- '-e' || return 1
   write_wrap
-  cat > "$STATE/nc-loop.sh" <<LEOF
+  cat > "$STATE/front-loop.sh" <<LEOF
 #!/bin/sh
 while :; do
-  '$BB' nc -l -p '$PORT' -e '$STATE/nc-wrap.sh'
+  '$BB' nc -l -p '$PORT' -e '$STATE/front-wrap.sh'
   '$BB' usleep 10000 2>/dev/null || true
 done
 LEOF
-  chmod +x "$STATE/nc-loop.sh"
-  "$BB" sh "$STATE/nc-loop.sh" >> "$LOG" 2>&1 < /dev/null &
+  chmod +x "$STATE/front-loop.sh"
+  "$BB" sh "$STATE/front-loop.sh" >> "$LOG" 2>&1 < /dev/null &
   echo $! > "$STATE/httpd.pid"
   printf 'front\n' > "$STATE/httpd.mode"
   printf 'nc-loop\n' > "$STATE/httpd.engine"
@@ -91,11 +107,16 @@ LEOF
 if pid_alive && probe_pages; then exit 0; fi
 pid_alive && stop_listener
 
+if start_socat && wait_for_pages; then exit 0; fi
+stop_listener
+
 if start_nc && wait_for_pages; then exit 0; fi
 stop_listener
 
 if start_nc_loop && wait_for_pages; then exit 0; fi
 stop_listener
 
+printf '%s pages: no listener could bind :%s (need socat, or busybox nc with -e)\n' \
+  "$("$BB" date +%s 2>/dev/null)" "$PORT" >> "$LOG" 2>/dev/null
 "$BB" wget --help >/dev/null 2>&1 && "$BB" wget -q -T 2 -O /dev/null "http://127.0.0.1:${PORT}/" 2>/dev/null || true
 exit 1

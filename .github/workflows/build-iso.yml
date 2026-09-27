@@ -1,0 +1,127 @@
+name: build-iso
+
+# Every branch push produces an ISO artifact. Pull requests only run the fast
+# overlay tests, because a full Buildroot run (musl toolchain + kernel 6.6 +
+# every package) takes the better part of an hour. Use "Run workflow" to build
+# an ISO from a branch that has not been pushed to, or open a draft PR.
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BR_VER: '2024.02.3'
+  # Keep the download cache outside the buildroot tree so actions/cache can
+  # restore it without touching build state.
+  BR2_DL_DIR: ${{ github.workspace }}/rns-router/dl
+
+jobs:
+  test:
+    name: Overlay tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          # The suite drives the real overlay scripts under busybox ash, and
+          # the live-listener case needs socat.
+          sudo apt-get install -y --no-install-recommends busybox socat
+
+      - name: Run the regression suite
+        run: sh rns-router/tests/run-tests.sh
+
+  build:
+    name: Build ISO
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free up disk
+        run: |
+          # A Buildroot tree with a 6.6 kernel build inside it wants ~10 GB.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          df -h /
+
+      - name: Install Buildroot host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash bc binutils build-essential bzip2 cpio file gawk gcc g++ git \
+            gzip libncurses-dev libtool make patch perl python3 rsync tar \
+            unzip wget xz-utils bison flex
+          gcc --version | head -1
+          nproc
+
+      - name: Cache Buildroot downloads
+        uses: actions/cache@v4
+        with:
+          path: rns-router/dl
+          key: buildroot-dl-${{ env.BR_VER }}-${{ hashFiles('rns-router/buildroot-project/**') }}
+          restore-keys: |
+            buildroot-dl-${{ env.BR_VER }}-
+
+      - name: Build the ISO
+        run: ./rns-router/build.sh
+
+      - name: Show the images directory
+        if: always()
+        run: |
+          ls -lh "rns-router/buildroot-$BR_VER/output/images/" || true
+          echo "--- kernel + rootfs sizes"
+          du -h "rns-router/buildroot-$BR_VER/output/images/bzImage" 2>/dev/null || true
+          du -h "rns-router/buildroot-$BR_VER/output/images/rootfs.squashfs" 2>/dev/null || true
+
+      - name: Upload the ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: rns-router-${{ github.run_number }}-${{ github.sha }}
+          path: rns-router/buildroot-${{ env.BR_VER }}/output/images/rns-router.iso
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: rns-router-${{ github.run_number }}-${{ github.sha }}
+          path: dist
+
+      - name: Checksum
+        run: |
+          cd dist
+          sha256sum rns-router.iso > rns-router.iso.sha256
+          cat rns-router.iso.sha256
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd dist
+          gh release create "$GITHUB_REF_NAME" \
+            rns-router.iso rns-router.iso.sha256 \
+            --title "RNS Gateway Router $GITHUB_REF_NAME" \
+            --generate-notes
