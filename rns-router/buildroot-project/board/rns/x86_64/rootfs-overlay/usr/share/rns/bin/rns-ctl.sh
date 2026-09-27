@@ -30,5 +30,30 @@ case "$cmd" in
   resume) rm -f "$RNS_DATA/PAUSE"; fw_rebuild; echo armed ;;
   setpass) _set_pass admin "$1"; echo "password updated" ;;
   clients) clients_json ;;
-  *) echo "usage: rns-ctl status|packages|mint <id> [n]|expire|kick <mac>|ban <mac>|unban <mac>|pause|resume|setpass <pw>|clients"; exit 1 ;;
+  ssh)
+    case "${2:-status}" in
+      on)
+        ipt -C RNS_IN -i br0 -p tcp --dport 22 -j DROP 2>/dev/null \
+          && ipt -D RNS_IN -i br0 -p tcp --dport 22 -j DROP
+        ipt -C RNS_IN -i br0 -p tcp --dport 22 -j ACCEPT 2>/dev/null \
+          || ipt -I RNS_IN 1 -i br0 -p tcp --dport 22 -j ACCEPT
+        echo "ssh open on LAN — WARNING: the image ships with an empty root password"
+        ;;
+      off)
+        ipt -C RNS_IN -i br0 -p tcp --dport 22 -j ACCEPT 2>/dev/null \
+          && ipt -D RNS_IN -i br0 -p tcp --dport 22 -j ACCEPT
+        ipt -C RNS_IN -i br0 -p tcp --dport 22 -j DROP 2>/dev/null \
+          || ipt -A RNS_IN -i br0 -p tcp --dport 22 -j DROP
+        echo "ssh closed"
+        ;;
+      *)
+        if ipt -C RNS_IN -i br0 -p tcp --dport 22 -j ACCEPT 2>/dev/null; then
+          echo "ssh open (LAN only)"
+        else
+          echo "ssh closed"
+        fi
+        ;;
+    esac
+    ;;
+  *) echo "usage: rns-ctl status|packages|mint <id> [n]|expire|kick <mac>|ban <mac>|unban <mac>|pause|resume|setpass <pw>|clients|ssh on|off|status"; exit 1 ;;
 esac

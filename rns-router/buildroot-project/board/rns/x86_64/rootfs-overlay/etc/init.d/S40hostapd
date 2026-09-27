@@ -1,37 +1,59 @@
 #!/bin/sh
-WL=""
-for n in /sys/class/net/*; do
-  name=$(basename "$n")
-  case "$name" in wlan*|wlp*|wlx*) WL="$name"; break ;; esac
-done
+# Wireless AP, if this box has a wlan interface.
+#
+# Two fixes over the previous version: the config is written to /data
+# (writing /etc/hostapd.conf on a read-only squashfs failed silently), and
+# it now sets ctrl_interface — without it hostapd_cli has no socket and
+# net.sh deauth_mac() could never disassociate a kicked or expired client.
+
+DATA="${RNS_DATA:-/data/rns}"
+mkdir -p "$DATA" 2>/dev/null
+
+WL="${WLAN_IF:-}"
+if [ -z "$WL" ]; then
+  for n in /sys/class/net/*; do
+    name=$(basename "$n")
+    case "$name" in wlan*|wlp*|wlx*) WL="$name"; break ;; esac
+  done
+fi
 
 if [ -z "$WL" ]; then
   echo "[hostapd] no wireless interface — skipping"
   exit 0
 fi
 
-echo "$WL" > /data/rns/wlan.if
+echo "$WL" > "$DATA/wlan.if"
 
-SSID=$(sed -n 's/^SSID=//p' /data/rns/config.env 2>/dev/null | head -n1)
-[ -n "$SSID" ] || SSID=RNS
-CH=$(sed -n 's/^CHANNEL=//p' /data/rns/config.env 2>/dev/null | head -n1)
-[ -n "$CH" ] || CH=6
+SSID=$(sed -n 's/^SSID=//p'    "$DATA/config.env" 2>/dev/null | head -n1)
+CH=$(sed -n 's/^CHANNEL=//p'   "$DATA/config.env" 2>/dev/null | head -n1)
+HW=$(sed -n 's/^HW_MODE=//p'   "$DATA/config.env" 2>/dev/null | head -n1)
+MAXSTA=$(sed -n 's/^MAX_STA=//p' "$DATA/config.env" 2>/dev/null | head -n1)
+[ -n "$SSID" ]   || SSID=RNS
+[ -n "$CH" ]     || CH=6
+[ -n "$HW" ]     || HW=g
+[ -n "$MAXSTA" ] || MAXSTA=128
 
-cat > /etc/hostapd.conf <<EOF
+CONF="$DATA/hostapd.conf"
+cat > "$CONF" <<EOF
 interface=$WL
 driver=nl80211
 ssid=$SSID
-hw_mode=g
+hw_mode=$HW
 channel=$CH
 auth_algs=1
 ignore_broadcast_ssid=0
 ap_isolate=1
-max_num_sta=128
+max_num_sta=$MAXSTA
+bridge=br0
+ctrl_interface=/var/run/hostapd
 EOF
 
 ip link set "$WL" up
 ip link set "$WL" master br0 2>/dev/null || true
 
-/usr/sbin/hostapd -B -P /var/run/hostapd.pid /etc/hostapd.conf
-echo "[hostapd] started on $WL ssid=$SSID channel=$CH"
+if "${HOSTAPD_BIN:-/usr/sbin/hostapd}" -B -P /var/run/hostapd.pid "$CONF"; then
+  echo "[hostapd] started on $WL ssid=$SSID channel=$CH ctrl=/var/run/hostapd"
+else
+  echo "[hostapd] FAILED to start with $CONF"
+fi
 exit 0

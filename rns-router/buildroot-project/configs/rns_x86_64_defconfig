@@ -9,6 +9,9 @@ BR2_STRIP_strip=y
 BR2_KERNEL_HEADERS_AS_KERNEL=y
 BR2_TARGET_GENERIC_HOSTNAME="rns"
 BR2_TARGET_GENERIC_ISSUE="RNS Gateway Router"
+# NOTE: root has an empty password on the console. SSH is firewalled off from
+# both WAN and LAN by S50gate; `rns-ctl ssh on` opens it on the LAN. Set a
+# real password (or drop dropbear) before exposing 22.
 BR2_TARGET_GENERIC_ROOT_PASSWD=""
 BR2_TARGET_GENERIC_GETTY_PORT="tty1"
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
@@ -45,4 +48,12 @@ BR2_PACKAGE_UTIL_LINUX_NOLOGIN=y
 BR2_PACKAGE_HOSTAPD=y
 BR2_PACKAGE_IW=y
 BR2_PACKAGE_WPA_SUPPLICANT=y
+# The portal listener. socat forks a child per connection and exports the
+# peer address as SOCAT_PEERADDR, which is how rns-front.sh learns which
+# device is asking to redeem a voucher. Busybox's own nc cannot do this, and
+# Buildroot's default busybox config does not even build nc.
+BR2_PACKAGE_SOCAT=y
 BR2_PACKAGE_RNS=y
+# post-image.sh calls this to make the ISO; without it the script has to fall
+# back to whatever mkisofs/genisoimage happens to be on the build host.
+BR2_PACKAGE_HOST_XORRISO=y

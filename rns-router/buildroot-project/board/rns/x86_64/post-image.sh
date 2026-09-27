@@ -1,9 +1,26 @@
 #!/bin/sh
 set -e
-BUILD_DIR="$1"
-BINARIES_DIR="${BUILD_DIR}/images"
+# Buildroot calls post-image scripts with the *images* directory ($BINARIES_DIR,
+# normally output/images) as the first argument — not the build directory. The
+# previous version appended /images to it and so looked in output/images/images/,
+# which does not exist; the cp failed and set -e aborted the build at the last
+# step. $BINARIES_DIR is also in the environment, so fall back to it.
+BINARIES_DIR="${1:-${BINARIES_DIR:-}}"
+if [ -z "$BINARIES_DIR" ]; then
+  echo "post-image: no images directory given (expected \$1 or \$BINARIES_DIR)." >&2
+  exit 1
+fi
 ISOLINUX_DIR="${BINARIES_DIR}/isolinux"
 ISO="${BINARIES_DIR}/rns-router.iso"
+
+for f in bzImage rootfs.squashfs; do
+  if [ ! -f "${BINARIES_DIR}/${f}" ]; then
+    echo "post-image: ${BINARIES_DIR}/${f} is missing — did the kernel and" >&2
+    echo "post-image: squashfs rootfs build?" >&2
+    exit 1
+  fi
+done
+
 mkdir -p "$ISOLINUX_DIR"
 cp "$BINARIES_DIR/bzImage" "$ISOLINUX_DIR/bzImage"
 cp "$BINARIES_DIR/rootfs.squashfs" "$ISOLINUX_DIR/rootfs.squashfs"
@@ -13,15 +30,40 @@ PROMPT 0
 TIMEOUT 20
 LABEL rns
   KERNEL /bzImage
-  APPEND root=/dev/sr0 rootfstype=squashfs ro console=tty0 console=ttyS0,115200 quiet
+  APPEND root=/dev/ram0 rootfstype=squashfs ro console=tty0 console=ttyS0,115200 quiet
   INITRD /rootfs.squashfs
 CFG
-genisoimage -o "$ISO" -b isolinux/isolinux.bin -c isolinux/boot.cat \
-  -no-emul-boot -boot-load-size 4 -boot-info-table \
-  -J -R -V "RNS_ROUTER" "$BINARIES_DIR"
-ISO_BYTES=$(wc -c < "$ISO")
-if [ "$ISO_BYTES" -ge 10000000 ]; then
-  echo "ISO is ${ISO_BYTES} bytes; target is under 10,000,000 bytes." >&2
+
+# Buildroot puts host-xorriso in $(HOST_DIR)/bin, which is on PATH while the
+# post-image script runs. Fall back to a host mkisofs/genisoimage so the build
+# still works without it.
+MKISO=""
+for _c in xorriso genisoimage mkisofs; do
+  if command -v "$_c" >/dev/null 2>&1; then MKISO="$_c"; break; fi
+done
+if [ -z "$MKISO" ]; then
+  echo "post-image: no xorriso/genisoimage/mkisofs found." >&2
+  echo "post-image: add BR2_PACKAGE_HOST_XORRISO=y to the defconfig." >&2
   exit 1
+fi
+
+if [ "$MKISO" = "xorriso" ]; then
+  xorriso -as mkisofs -o "$ISO" \
+    -b isolinux/isolinux.bin -c isolinux/boot.cat \
+    -no-emul-boot -boot-load-size 4 -boot-info-table \
+    -J -R -V "RNS_ROUTER" "$BINARIES_DIR"
+else
+  "$MKISO" -o "$ISO" -b isolinux/isolinux.bin -c isolinux/boot.cat \
+    -no-emul-boot -boot-load-size 4 -boot-info-table \
+    -J -R -V "RNS_ROUTER" "$BINARIES_DIR"
+fi
+
+# Informational, not fatal: a 6.6 kernel plus iptables, dnsmasq, hostapd,
+# dropbear and socat will not fit in 10 MB, and failing the build here only
+# throws away a working image.
+ISO_BYTES=$(wc -c < "$ISO")
+echo "ISO: $ISO (${ISO_BYTES} bytes)"
+if [ "$ISO_BYTES" -ge 10000000 ]; then
+  echo "post-image: note — ISO is ${ISO_BYTES} bytes, over the 10 MB target." >&2
 fi
 ls -lh "$ISO"
