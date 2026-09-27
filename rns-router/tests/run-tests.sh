@@ -319,6 +319,26 @@ else
   filehas 'BR2_DL_DIR'                     "$WF" "download cache is external and cacheable"
 fi
 
+# ----------------------------------------------------- post-build.sh robustness
+echo "== post-build.sh on a realistic target tree"
+PB="$WORK/target"
+mkdir -p "$PB/etc/init.d" "$PB/usr/share/rns/bin"
+# Buildroot's dropbear package leaves /etc/dropbear as a symlink into the
+# per-boot tmpfs (ln -snf /var/run/dropbear). mkdir -p on a symlink fails
+# with "File exists" — that is exactly what killed the CI build during
+# target-finalize. post-build.sh must survive it and still finish its work.
+ln -s /var/run/dropbear "$PB/etc/dropbear"
+if "$BB" sh "$BOARD/post-build.sh" "$PB" >/dev/null 2>"$WORK/pb.err"; then
+  ok "post-build.sh survives the dropbear symlink"
+else
+  bad "post-build.sh failed with the dropbear symlink: $(cat "$WORK/pb.err")"
+fi
+if [ -d "$PB/data/rns" ]; then
+  ok "post-build.sh creates /data/rns"
+else
+  bad "post-build.sh did not create /data/rns"
+fi
+
 # ------------------------------------------------------------------ summary
 echo
 echo "passed=$PASS failed=$FAIL skipped=$SKIP"

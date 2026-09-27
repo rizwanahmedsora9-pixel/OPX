@@ -112,6 +112,7 @@ PATTERNS = [
     (re.compile(r"tests/run-tests\.sh.*FAIL|not ok \d", re.I), "The regression suite (tests/run-tests.sh) failed — a shell script under rootfs-overlay/usr/share/rns/bin regressed; re-run locally with `sh tests/run-tests.sh` for the failing case name."),
     (re.compile(r"curl.*(Could not resolve|timed out|Connection refused)", re.I), "A download step failed to reach a mirror (Buildroot source tarball or the buildroot release tarball itself) — likely a transient network issue; retry."),
     (re.compile(r"No such file or directory.*buildroot-\d"), "The Buildroot tarball for BR_VER wasn't found after download — check BR_VER in build.sh matches an existing Buildroot release."),
+    (re.compile(r"mkdir: cannot create directory.*File exists|target-finalize.*Error"), "'mkdir -p' in post-build.sh hit a symlink (buildroot installs /etc/dropbear as a symlink to /var/run/dropbear) and killed target-finalize — guard it with [ ! -L ... ] (fixed in post-build.sh)."),
     (re.compile(r"Permission denied"), "A permissions issue — check post-build.sh chmod steps and that the runner isn't running as an unexpected user."),
 ]
 
