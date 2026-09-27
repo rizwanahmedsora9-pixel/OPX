@@ -63,10 +63,17 @@ jobs:
       - name: Install Buildroot host dependencies
         run: |
           sudo apt-get update
+          # libelf-dev is NOT optional: the 6.6 kernel builds objtool (ORC
+          # unwinder / stack validation), and tools/objtool/include/objtool/elf.h
+          # includes <gelf.h>. The current runner images no longer ship the
+          # libelf headers, so the kernel build dies with
+          # "fatal error: gelf.h: No such file or directory" ~22 minutes in.
+          # libssl-dev covers scripts/extract-cert, which is compiled whenever
+          # CONFIG_SYSTEM_TRUSTED_KEYRING is on (the default).
           sudo apt-get install -y --no-install-recommends \
             bash bc binutils build-essential bzip2 cpio file gawk gcc g++ git \
-            gzip libncurses-dev libtool make patch perl python3 rsync tar \
-            unzip wget xz-utils bison flex
+            gzip libelf-dev libncurses-dev libssl-dev libtool make patch perl \
+            python3 rsync tar unzip wget xz-utils bison flex
           gcc --version | head -1
           nproc
 

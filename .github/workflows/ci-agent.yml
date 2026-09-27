@@ -24,7 +24,9 @@ on:
         default: "main"
 
 permissions:
-  actions: read
+  # Reading runs/jobs/logs needs actions:read; the deploy and watch actions
+  # POST to /dispatches, which needs actions:write.
+  actions: write
   contents: read
 
 jobs:

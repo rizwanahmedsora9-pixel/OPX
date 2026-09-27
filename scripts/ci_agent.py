@@ -101,6 +101,8 @@ def download_job_log(repo, token, job_id):
 # Buildroot package builds, kernel config, syslinux/isolinux packaging,
 # and the shell-based test suite.
 PATTERNS = [
+    (re.compile(r"gelf\.h: No such file or directory|libelf.*not (found|detected)", re.I), "The kernel's objtool needs host libelf (gelf.h) for the ORC unwinder — the workflow must apt-get install libelf-dev before building (fixed in build-iso.yml)."),
+    (re.compile(r"openssl/.*\.h: No such file|extract-cert.*Error", re.I), "scripts/extract-cert needs OpenSSL headers (CONFIG_SYSTEM_TRUSTED_KEYRING defaults on) — apt-get install libssl-dev."),
     (re.compile(r"No space left on device"), "Runner ran out of disk space — Buildroot needs ~10GB; the workflow should free runner images (dotnet/android/ghc) before building."),
     (re.compile(r"E: Unable to locate package|apt-get.*fail", re.I), "A host package (apt dependency for the Buildroot toolchain) failed to install — likely an upstream apt mirror hiccup, or the runner image changed."),
     (re.compile(r"Config\.in.*syntax error|Kconfig.*error", re.I), "A Buildroot Config.in/Kconfig syntax error — check package/rns/Config.in or the defconfig for a malformed option."),

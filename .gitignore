@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+
+# Buildroot local build output
+rns-router/buildroot-*/
+rns-router/buildroot-*.tar.xz
+rns-router/dl/
