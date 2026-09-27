@@ -24,6 +24,28 @@ done
 mkdir -p "$ISOLINUX_DIR"
 cp "$BINARIES_DIR/bzImage" "$ISOLINUX_DIR/bzImage"
 cp "$BINARIES_DIR/rootfs.squashfs" "$ISOLINUX_DIR/rootfs.squashfs"
+
+# Buildroot installs isolinux.bin and any C32 modules into
+# $(BINARIES_DIR)/syslinux/, not into the isolinux/ layout the ISO needs.
+# syslinux 6 will not boot at all without ldlinux.c32 beside isolinux.bin,
+# and BR2_TARGET_SYSLINUX_C32 defaults to empty.
+SYSLINUX_SRC="${BINARIES_DIR}/syslinux"
+if [ ! -f "${SYSLINUX_SRC}/isolinux.bin" ]; then
+  echo "post-image: ${SYSLINUX_SRC}/isolinux.bin is missing." >&2
+  echo "post-image: enable BR2_TARGET_SYSLINUX_ISOLINUX=y." >&2
+  exit 1
+fi
+cp "${SYSLINUX_SRC}/isolinux.bin" "$ISOLINUX_DIR/isolinux.bin"
+for m in "$SYSLINUX_SRC"/*.c32; do
+  [ -e "$m" ] || continue
+  cp "$m" "$ISOLINUX_DIR/"
+done
+if [ ! -f "$ISOLINUX_DIR/ldlinux.c32" ]; then
+  echo "post-image: ldlinux.c32 is missing — syslinux 6 will not boot this ISO." >&2
+  echo "post-image: set BR2_TARGET_SYSLINUX_C32=\"ldlinux.c32\" in the defconfig." >&2
+  exit 1
+fi
+
 cat > "$ISOLINUX_DIR/isolinux.cfg" <<CFG
 DEFAULT rns
 PROMPT 0

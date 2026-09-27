@@ -8,9 +8,10 @@ framework, no language runtime.
 
 ```
 rns-router/
-  build-in-termux.sh        download buildroot and build the ISO
-  run-qemu.sh               boot the ISO under qemu, portal on :8080
-  tests/run-tests.sh        regression suite, runs without root
+  build.sh                download buildroot and build the ISO
+  build-in-termux.sh      alias for build.sh
+  run-qemu.sh             boot the ISO under qemu, portal on :8080
+  tests/run-tests.sh      regression suite, runs without root
   buildroot-project/
     external.desc/.mk, Config.in
     configs/rns_x86_64_defconfig
@@ -31,16 +32,44 @@ rns-router/
 
 ```sh
 cd rns-router
-./build-in-termux.sh          # needs network on the first run
-./run-qemu.sh                 # portal at http://127.0.0.1:8080
+./build.sh                # needs network on the first run
+./run-qemu.sh             # portal at http://127.0.0.1:8080
 ```
+
+`build.sh` is the single builder — CI runs the same script, so what the
+workflow produces is reproducible locally. `BR_VER`, `JOBS` and `BR2_DL_DIR`
+override the buildroot version, the parallelism and the download cache
+location. `build-in-termux.sh` is kept as an alias.
 
 Output: `buildroot-2024.02.3/output/images/rns-router.iso`. The ISO is
 isolinux-booted: the squashfs root is loaded as an initrd, which is why
 `kernel.config` enables `BLK_DEV_INITRD`, `BLK_DEV_RAM` and a 64 MB
-`BLK_DEV_RAM_SIZE`.
+`BLK_DEV_RAM_SIZE`, and why the defconfig pins `BR2_TARGET_SYSLINUX_C32="ldlinux.c32"`
+— syslinux 6 will not boot without that module beside `isolinux.bin`.
+
+## Continuous integration
+
+`.github/workflows/build-iso.yml` has three jobs:
+
+| job | runs on | what it does |
+|---|---|---|
+| `test` | every push and PR | installs busybox + socat, runs `tests/run-tests.sh` |
+| `build` | pushes to any branch, tags, manual dispatch | builds the ISO and uploads it as an artifact |
+| `release` | `v*` tags only | attaches the ISO and its sha256 to a GitHub release |
+
+Pull requests deliberately skip `build` — a full Buildroot run (musl
+toolchain, kernel 6.6, every package) takes the better part of an hour.
+Use **Actions → build-iso → Run workflow** to build an ISO from a branch
+without pushing it. Artifacts are named `rns-router-<run>-<sha>` and kept for
+30 days; the `dl/` download cache is keyed on the buildroot version and the
+contents of `buildroot-project/`.
+
+The `build` job needs roughly 10 GB of disk and an hour or more on a
+2-core runner; it starts by deleting the runner's dotnet/Android/GHC images
+to make room.
 
 ## Testing
+
 
 ```sh
 sh tests/run-tests.sh

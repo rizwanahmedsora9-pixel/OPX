@@ -187,6 +187,8 @@ filehas 'bridge=br0' "$WORK/data/hostapd.conf" "hostapd joins the bridge"
 echo "== build configuration"
 filehas 'BR2_PACKAGE_SOCAT=y'           "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "socat is built into the image"
 filehas 'BR2_PACKAGE_HOST_XORRISO=y'    "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "host xorriso is built for the ISO"
+filehas 'BR2_LINUX_KERNEL_BZIMAGE=y'    "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "kernel image is named bzImage"
+filehas 'ldlinux.c32'                   "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "syslinux C32 module is installed"
 for sym in CONFIG_BLK_DEV_INITRD CONFIG_BLK_DEV_RAM CONFIG_NET_SCHED \
            CONFIG_NET_SCH_INGRESS CONFIG_NET_CLS_ACT CONFIG_NET_ACT_POLICE \
            CONFIG_UNIX CONFIG_PACKET; do
@@ -213,11 +215,11 @@ echo "== post-image.sh (stubbed ISO writer)"
 # Buildroot hands the script $BINARIES_DIR itself, so the artifacts sit
 # directly in it.
 IMG="$WORK/images"
-mkdir -p "$IMG"
+mkdir -p "$IMG/syslinux"
 printf 'kernel\n' > "$IMG/bzImage"
 printf 'squashfs\n' > "$IMG/rootfs.squashfs"
-printf 'mbr\n' > "$IMG/isolinux.bin"
-mkdir -p "$IMG/isolinux"; printf 'mbr\n' > "$IMG/isolinux/isolinux.bin"
+printf 'boot\n' > "$IMG/syslinux/isolinux.bin"
+printf 'c32\n'  > "$IMG/syslinux/ldlinux.c32"
 
 # A stand-in for xorriso/genisoimage: records its arguments and writes an
 # output file of a known size. post-image.sh's own logic — arg handling, the
@@ -249,6 +251,17 @@ out=$("$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
 has 'is missing' "$out" "a missing kernel image is reported clearly"
 printf 'kernel\n' > "$IMG/bzImage"
 [ -f "$IMG/rns-router.iso" ] && ok "iso written to images/" || bad "iso not written"
+[ -f "$IMG/isolinux/isolinux.bin" ] && ok "isolinux.bin staged from syslinux/" || bad "isolinux.bin not staged"
+[ -f "$IMG/isolinux/ldlinux.c32" ] && ok "ldlinux.c32 staged beside isolinux.bin" || bad "ldlinux.c32 not staged"
+
+# syslinux 6 refuses to boot without ldlinux.c32, so a missing one must be fatal
+# Simulate a clean output/images: the isolinux/ dir is derived, so drop the
+# copy the previous run staged as well as the source.
+mv "$IMG/syslinux/ldlinux.c32" "$WORK/ldlinux.c32.bak"
+rm -rf "$IMG/isolinux"
+out=$(PATH="$WORK/bin:$PATH" "$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
+has 'BR2_TARGET_SYSLINUX_C32' "$out" "a missing ldlinux.c32 is refused with the fix"
+mv "$WORK/ldlinux.c32.bak" "$IMG/syslinux/ldlinux.c32"
 
 # genisoimage fallback, and a clear error when no writer exists at all
 mkdir -p "$WORK/bin2"; cp "$WORK/bin/xorriso" "$WORK/bin2/genisoimage"
@@ -263,6 +276,46 @@ if command -v xorriso >/dev/null 2>&1 || command -v genisoimage >/dev/null 2>&1 
 else
   out=$("$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
   has 'BR2_PACKAGE_HOST_XORRISO' "$out" "missing ISO writer explains how to fix it"
+fi
+
+# ----------------------------------------------------------------- CI workflow
+echo "== CI workflow"
+WF="$PROJ/../.github/workflows/build-iso.yml"
+if [ ! -f "$WF" ]; then
+  bad ".github/workflows/build-iso.yml is missing"
+else
+  ok "workflow file present"
+  # Pull every `run:` block out of the YAML and syntax-check it as bash. The
+  # blocks deliberately use shell env vars rather than ${{ }} so they are
+  # valid bash on their own.
+  awk '
+    function indent(l,  i) { i = 0; while (substr(l, i+1, 1) == " ") i++; return i }
+    /^[[:space:]]*run:[[:space:]]*\|[[:space:]]*$/ { inb = 1; base = -1; next }
+    /^[[:space:]]*run:[[:space:]]*[^|[:space:]]/ {
+      line = $0; sub(/^[[:space:]]*run:[[:space:]]*/, "", line); print line; next
+    }
+    inb {
+      if ($0 ~ /^[[:space:]]*$/) { print ""; next }
+      cur = indent($0)
+      if (base < 0) base = cur
+      if (cur >= base) { print substr($0, base + 1); next }
+      inb = 0
+    }
+  ' "$WF" > "$WORK/ci-runs.sh"
+  lines=$(wc -l < "$WORK/ci-runs.sh" | tr -d ' ')
+  if [ "$lines" -gt 5 ]; then
+    ok "extracted $lines lines of workflow shell"
+  else
+    bad "only extracted $lines lines of workflow shell — extractor is broken"
+  fi
+  out=$(bash -n "$WORK/ci-runs.sh" 2>&1) || bad "workflow shell is not valid bash: $out"
+  [ -z "$out" ] && ok "every run: block is valid bash"
+  filehas 'rns-router/tests/run-tests.sh' "$WF" "workflow runs the test suite"
+  filehas './rns-router/build.sh'          "$WF" "workflow uses the shared builder"
+  filehas 'output/images/rns-router.iso'   "$WF" "artifact path matches build.sh output"
+  filehas 'if-no-files-found: error'       "$WF" "a missing ISO fails the job"
+  filehas 'actions/upload-artifact'        "$WF" "ISO is uploaded as an artifact"
+  filehas 'BR2_DL_DIR'                     "$WF" "download cache is external and cacheable"
 fi
 
 # ------------------------------------------------------------------ summary
