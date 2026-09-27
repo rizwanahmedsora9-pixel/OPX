@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#08131f">
+<title>Connect · RNS Internet</title>
+<style>
+:root{--navy:#08131f;--blue:#112c46;--teal:#0d777c;--cyan:#70e4db;--gold:#f4c97b;--paper:#ffffff;--ink:#102033;--muted:#6a7888;--line:#d5dee7;--soft:#eef3f7;--danger:#c95662;--r:14px;--shadow:0 14px 40px rgba(2,13,25,.28)}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%}
+html,body{margin:0;min-height:100%;font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink)}
+body{background:linear-gradient(160deg,#07131f,#12354f 55%,#0c2a33);background-attachment:scroll;min-height:100vh}
+button,input{font:inherit;color:inherit}button{cursor:pointer;touch-action:manipulation}
+h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.02em}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* splash */
+.splash{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:linear-gradient(145deg,#07131f,#163c58);color:#fff;transition:opacity .4s,visibility .4s;animation:splashAutoHide .6s 1s ease forwards}
+.splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+@keyframes splashAutoHide{to{opacity:0;visibility:hidden;pointer-events:none}}
+.splash-inner{text-align:center}
+.logo{width:72px;height:72px;margin:0 auto 16px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(140deg,#0d354e,#0d777c);color:#fff;font-weight:900;letter-spacing:.1em;font-size:16px}
+.splash b{font-size:20px;letter-spacing:.2em}
+.splash p{color:#b6cad6;margin:8px 0;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.spinner{width:24px;height:24px;border:2px solid rgba(255,255,255,.22);border-top-color:var(--gold);border-radius:50%;margin:20px auto 0;animation:spin 1s linear infinite}
+
+/* frame */
+.shell{width:min(100% - 24px,480px);margin:0 auto;padding:16px 0 28px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#fff;margin-bottom:14px}
+.brand{display:flex;gap:11px;align-items:center;min-width:0}
+.brand .mini{flex:none;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:12px;font-weight:900;background:linear-gradient(140deg,#0d354e,#0d777c);color:#fff}
+.brand strong{display:block;letter-spacing:.1em;font-size:16px}
+.brand small{display:block;color:#b9ccd8;font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock{flex:none;text-align:right;color:#dce9ee;font-size:11px}
+.clock b{display:block;color:var(--gold);font-size:16px;font-variant-numeric:tabular-nums}
+
+/* card */
+.card{background:var(--paper);border-radius:22px;padding:22px 18px 20px;box-shadow:var(--shadow);animation:rise .4s ease both}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#18858a}
+.card h1{margin:6px 0 4px;font-size:26px;line-height:1.15}
+.urdu{margin:0 0 14px;font-size:19px;color:#536679;line-height:1.6}
+.sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+.network{display:inline-flex;gap:7px;align-items:center;color:var(--blue);font-weight:800}
+.network:before{content:"";width:8px;height:8px;border-radius:50%;background:#36c491;box-shadow:0 0 0 4px rgba(54,196,145,.15)}
+label{display:block;margin-bottom:6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:800}
+
+/* mode tabs */
+.mode-tabs{display:flex;gap:6px;margin-bottom:16px;padding:4px;background:var(--soft);border-radius:var(--r)}
+.mode-tab{flex:1 1 0;min-height:42px;padding:8px 6px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-size:13px;font-weight:800;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode-tab.active{background:#fff;color:var(--blue);box-shadow:0 2px 8px rgba(2,13,25,.12)}
+.buy-section{display:none}.buy-section.on{display:block}
+
+/* code entry */
+.code-wrap{display:flex;align-items:center;background:#fff;border:1.5px solid var(--line);border-radius:var(--r);padding:0 12px}
+.code-wrap:focus-within{border-color:#18a8a2;box-shadow:0 0 0 3px rgba(24,168,162,.14)}
+.code-wrap span{font-size:20px;color:#b4bec8}
+.code-wrap input{width:100%;border:0;outline:0;background:transparent;color:var(--ink);font:800 24px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1em;padding:15px 6px;text-align:center;text-transform:uppercase}
+.code-wrap input::placeholder{color:#b8c2cb}
+.connect{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:14px;border:0;border-radius:var(--r);padding:0 16px;background:linear-gradient(110deg,#0d354e,#0d777c);color:#fff;font-weight:800;font-size:15px;letter-spacing:.04em}
+.connect:disabled{opacity:.6;cursor:wait}
+.msg{min-height:22px;margin:12px 2px 0;font-size:14px}.msg.bad{color:var(--danger)}.msg.good{color:#148968}
+.checking{display:none;align-items:center;gap:8px;color:#527080;font-size:13px}.checking.on{display:flex}
+.tiny-spin{width:14px;height:14px;border:2px solid #b5c9d1;border-top-color:#138d91;border-radius:50%;animation:spin .8s linear infinite}
+
+/* buy online */
+.pkg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.pkg-card{min-height:44px;border:1.5px solid var(--line);border-radius:var(--r);padding:12px 10px;background:#fff;text-align:center}
+.pkg-card.sel{border-color:#18a8a2;box-shadow:0 0 0 3px rgba(24,168,162,.14)}
+.pkg-card b{display:block;font-size:14px;margin-bottom:3px}
+.pkg-card small{display:block;color:var(--muted);font-size:11px;line-height:1.35}
+.pkg-card em{display:block;color:#18858a;font-style:normal;font-size:14px;font-weight:800;margin-top:6px}
+.pay-methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.pay-method{min-height:56px;padding:10px;border:1.5px solid var(--line);border-radius:var(--r);text-align:center;background:#fff}
+.pay-method.sel{border-color:#18a8a2;box-shadow:0 0 0 3px rgba(24,168,162,.14)}
+.pay-method b{display:block;font-size:14px;margin-bottom:2px}
+.pay-method small{color:var(--muted);font-size:11px}
+.pay-info{background:var(--soft);border-radius:var(--r);padding:14px;margin-bottom:12px;font-size:13px;line-height:1.5;word-break:break-word}
+.pay-info b{display:block;font-size:15px;margin-bottom:6px}
+.pay-info .num{font:900 20px ui-monospace,Menlo,monospace;color:#0d354e;letter-spacing:.04em}
+.ref-box{margin:10px 0 4px;padding:12px;border-radius:var(--r);background:#fff7e0;border:1.5px dashed #e0b34a;text-align:center}
+.ref-box small{display:block;color:#8a5a00;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:800}
+.ref-box b{display:block;font:900 24px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1em;color:#14211b;margin:6px 0 8px;word-break:break-all}
+.ref-box button{min-height:40px;border:0;border-radius:10px;padding:0 16px;background:var(--teal);color:#fff;font-weight:800}
+.ref-ok{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;font-size:13px;color:#14211b;text-transform:none;letter-spacing:0;font-weight:500}
+.ref-ok input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--teal)}
+.tid-input{display:block;width:100%;min-height:50px;border:1.5px solid var(--line);border-radius:var(--r);padding:12px 14px;font:800 18px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;outline:0}
+.tid-input:focus{border-color:#18a8a2;box-shadow:0 0 0 3px rgba(24,168,162,.14)}
+.pending-box{background:#fff7e6;border:1.5px solid var(--gold);border-radius:var(--r);padding:16px;text-align:center;margin-top:14px}
+.pending-box h3{margin:0 0 8px;font-size:18px;color:#8a5a00}
+.pending-box p{margin:4px 0;font-size:13px;color:#6a5020;word-break:break-word}
+.pending-box .tid{font:900 15px ui-monospace,Menlo,monospace;color:#0d354e;background:#fff;padding:5px 10px;border-radius:8px;display:inline-block;margin:4px 0}
+.download-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;margin-top:12px;padding:0 22px;background:linear-gradient(110deg,#0d354e,#0d777c);color:#fff;border-radius:12px;font-weight:800;font-size:13px;letter-spacing:.04em;text-decoration:none;border:0}
+.back-link{display:inline-block;margin-top:12px;padding:6px 0;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline}
+
+/* success */
+.success{display:none;text-align:center;animation:rise .4s ease both}.success.on{display:block}
+.check{width:60px;height:60px;margin:2px auto 14px;border-radius:20px;background:linear-gradient(145deg,#c8f5df,#7dd3b4);display:grid;place-items:center;color:#0a634d;font-size:32px;font-weight:900}
+.success h2{font-size:25px}
+.success p{color:var(--muted);margin:6px 0 16px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;text-align:left}
+.fact{padding:11px 12px;border-radius:12px;background:var(--soft)}
+.fact span{display:block;color:#6c7c89;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.fact b{display:block;margin-top:3px;font-size:14px;word-break:break-word}
+.note{color:var(--muted);font-size:13px;line-height:1.5}
+.meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);color:#7a8792;font-size:12px}
+.lab{display:none;margin-top:12px;border-radius:12px;padding:12px;background:#102c42;color:#d9f5e8;font-size:12px;word-break:break-word}.lab.on{display:block}
+.footer{text-align:center;color:#bdd0d9;font-size:12px;margin-top:14px;padding:0 8px}
+.footer a{color:#fff;text-decoration:none}
+
+@media(max-width:380px){.shell{width:min(100% - 16px,480px)}.card{padding:18px 14px 16px}.card h1{font-size:23px}.urdu{font-size:17px}.clock{display:none}.code-wrap input{font-size:21px}.pkg-grid,.pay-methods{grid-template-columns:1fr}}
+@media(min-width:720px){.shell{padding:36px 0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.splash{display:none}}
+</style>
+</head>
+<body>
+<noscript><style>.splash{display:none!important}</style></noscript>
+<div class="splash" id="splash"><div class="splash-inner"><div class="logo">RNS</div><b id="splashBrand">RNS INTERNET</b><p>Welcome to a better connection</p><div class="spinner"></div></div></div>
+<main class="shell">
+  <header class="top"><div class="brand"><div class="mini">RNS</div><div><strong>RNS</strong><small id="shop">Internet voucher</small></div></div><div class="clock"><b id="time">--:--</b><span id="date">--</span></div></header>
+  <section class="card">
+    <div id="formView">
+      <div class="eyebrow">Private access</div><h1>Welcome online.</h1><p class="urdu" dir="rtl">واؤچر کوڈ درج کریں</p><p class="sub">Connect to <span class="network" id="ssidName">RNS</span>, then enter the voucher from the counter. One voucher unlocks one device.</p>
+      <div class="mode-tabs" id="modeTabs">
+        <div class="mode-tab active" data-mode="voucher">Enter Voucher</div>
+        <div class="mode-tab" data-mode="buy" id="buyTab" style="display:none">Buy Online</div>
+      </div>
+      <!-- Voucher entry -->
+      <div id="voucherSection">
+        <form id="redeemForm" method="post" action="/api/redeem"><label for="code">Voucher code</label><div class="code-wrap"><span>#</span><input id="code" name="code" autocomplete="one-time-code" autocapitalize="characters" inputmode="text" maxlength="16" placeholder="ABCD-1234" required></div><button class="connect" id="connect" type="submit">Connect securely</button><noscript><p class="msg">JavaScript is off. Enter the code and tap Connect securely.</p></noscript></form>
+        <div class="checking" id="checking"><i class="tiny-spin"></i><span id="checkingText">Checking your voucher…</span></div><p class="msg" id="msg"></p>
+      </div>
+      <!-- Buy online section -->
+      <div class="buy-section" id="buySection">
+        <p class="sub" style="margin-bottom:14px">No voucher? Pay online via JazzCash or EasyPaisa and get connected instantly after verification.</p>
+        <div id="buyStep1">
+          <label>Choose a package</label>
+          <div class="pkg-grid" id="pkgGrid"></div>
+          <label>Payment method</label>
+          <div class="pay-methods" id="payMethods"></div>
+          <div class="pay-info" id="payInfo" style="display:none"></div>
+          <button class="connect" id="proceedPay" disabled>Proceed to Payment</button>
+        </div>
+        <div id="buyStep2" style="display:none">
+          <div class="pay-info" id="payInstructions"></div>
+          <div class="ref-box" id="refBox" style="display:none"><small>Your Tracking ID — write it in the payment notes</small><b id="refCode">—</b><button type="button" id="copyRef">Copy Tracking ID</button><div style="margin-top:8px;font-size:12px;color:#8a5a00">Type this in the <b>Notes / Purpose / Reference</b> box of the JazzCash or EasyPaisa transfer. Staff match your payment by it.</div></div>
+          <label class="ref-ok"><input type="checkbox" id="refAdded"><span>I wrote the Tracking ID in the payment notes and sent the exact amount.</span></label>
+          <label for="tidInput">Transaction ID (TID)</label>
+          <input class="tid-input" id="tidInput" placeholder="e.g. 847392016" maxlength="32" autocomplete="off">
+          <button class="connect" id="submitTid" style="margin-top:12px">Submit TID &amp; Activate</button>
+          <div class="checking" id="tidChecking"><i class="tiny-spin"></i><span>Submitting payment…</span></div>
+          <p class="msg" id="tidMsg"></p>
+          <span class="back-link" id="backToStep1">← Back to packages</span>
+        </div>
+        <div id="buyStep3" style="display:none">
+          <div class="pending-box" id="pendingBox">
+            <div class="checking on" style="justify-content:center;margin-bottom:10px"><i class="tiny-spin"></i><span>Waiting for staff confirmation…</span></div>
+            <h3>Payment Submitted</h3>
+            <p>Tracking ID: <span class="tid" id="pendingRef"></span></p>
+            <p>Your TID: <span class="tid" id="pendingTid"></span></p>
+            <p>Package: <b id="pendingPkg"></b></p>
+            <p>Amount: <b id="pendingAmt"></b></p>
+            <p style="margin-top:10px;font-size:12px;color:#8a5a00">Staff will verify your payment and activate your internet. This page updates automatically.</p>
+          </div>
+        </div>
+        <div id="buyStep4" style="display:none">
+          <div class="success on">
+            <div class="check">✓</div>
+            <h2>Payment Confirmed!</h2>
+            <p>Your internet is now active. Enjoy!</p>
+            <div class="facts">
+              <div class="fact"><span>Voucher</span><b id="payVoucherCode">—</b></div>
+              <div class="fact"><span>Speed</span><b id="paySpeed">—</b></div>
+              <div class="fact"><span>Time</span><b id="payLeft">—</b></div>
+              <div class="fact"><span>TID</span><b id="payTidConfirm">—</b></div>
+              <div class="fact"><span>Tracking ID</span><b id="payRefConfirm">—</b></div>
+            </div>
+            <a class="download-btn" id="downloadReceipt" href="#">⬇ Download Voucher PDF</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="success" id="success"><div class="check">✓</div><h2>You're connected</h2><p>Voucher verified. Enjoy your internet access.</p><div class="facts"><div class="fact"><span>Speed</span><b id="speed">—</b></div><div class="fact"><span>Time remaining</span><b id="left">—</b></div><div class="fact"><span>Expires at</span><b id="expiresAt">—</b></div><div class="fact"><span>Device</span><b>Bound to this phone</b></div><div class="fact"><span>Status</span><b style="color:#148968">Active</b></div></div><p class="note" style="margin-top:14px">Your time runs by the clock from the moment the code was entered — it does not pause when you disconnect. When it ends, this page comes back so you can enter a new code.</p></div>
+    <div class="meta"><span>Encrypted voucher check</span><span>No Wi-Fi password</span></div>
+  </section>
+  <div class="lab" id="lab"></div><div class="footer"><a href="/admin">Staff access</a> · RNS Gateway</div>
+</main>
+<script>
+(function(){
+  var splash=document.getElementById('splash'), code=document.getElementById('code'), form=document.getElementById('redeemForm'), btn=document.getElementById('connect'), msg=document.getElementById('msg'), checking=document.getElementById('checking'), checkingText=document.getElementById('checkingText');
+  var payOnline=false, payPkgs=[], selPkg=null, selMethod=null, payJcNum='', payEpNum='', payJcName='', payEpName='', currentPayId=null, pollTimer=null;
+
+  function tick(){var d=new Date();document.getElementById('time').textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});document.getElementById('date').textContent=d.toLocaleDateString([], {day:'numeric',month:'short',year:'numeric'});} tick();setInterval(tick,1000);setTimeout(function(){splash.classList.add('hide')},1800);
+  function show(t,kind){msg.textContent=t;msg.className='msg '+(kind||'');}
+  function clean(v){return v.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12)}
+  function leftStr(sec){sec=Math.max(0,Number(sec)||0);var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),x=sec%60;if(h>=48)return Math.floor(h/24)+' days '+(h%24)+'h';if(h)return h+'h '+m+'m';if(m)return m+' min '+x+'s';return x+' sec';}
+  function whenStr(epoch){epoch=Number(epoch)||0;if(!epoch)return '—';var d=new Date(epoch*1000),n=new Date(),sameDay=d.toDateString()===n.toDateString();var t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});return sameDay?('Today '+t):(d.toLocaleDateString([],{day:'numeric',month:'short'})+' '+t)}
+  function speedStr(d,u){function one(k){return Number(k)>=1024?(Math.round(Number(k)/102.4)/10)+' Mbps':k+' Kbps'}return one(d)+' / '+one(u)}
+  function durStr(sec){var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);if(h>=24)return Math.floor(h/24)+' day(s)';if(h)return h+'h'+(m?' '+m+'m':'');return m+' min';}
+  // Wall-clock countdown. The server gives the absolute expiry (epoch) and
+  // its own clock; we count down against that, not against how long this
+  // page has been open, so the number matches what the gateway enforces.
+  var expAt=0,clockSkew=0,leftTimer=null,pollTimer=null;
+  function paintLeft(){var now=Math.floor(Date.now()/1000)+clockSkew,l=expAt-now;document.getElementById('left').textContent=leftStr(l);if(l<=0){expired()}}
+  function expired(){if(leftTimer){clearInterval(leftTimer);leftTimer=null}if(pollTimer){clearInterval(pollTimer);pollTimer=null}document.getElementById('success').classList.remove('on');document.getElementById('formView').style.display='';code.value='';show('Your time is over. Enter a new voucher code to connect again.','bad');setTimeout(function(){location.replace('/?ended=1')},1500)}
+  function showSuccess(j){document.getElementById('formView').style.display='none';document.getElementById('success').classList.add('on');document.getElementById('speed').textContent=speedStr(j.down_kbps,j.up_kbps);expAt=Number(j.expires)||0;if(j.now){clockSkew=Number(j.now)-Math.floor(Date.now()/1000)}else if(j.left!=null){expAt=Math.floor(Date.now()/1000)+Number(j.left)}document.getElementById('expiresAt').textContent=whenStr(expAt);paintLeft();if(leftTimer)clearInterval(leftTimer);leftTimer=setInterval(paintLeft,1000);if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(function(){fetch('/api/me',{headers:{Accept:'application/json'}}).then(function(r){return r.json()}).then(function(m){if(m&&m.bound){expAt=Number(m.expires)||expAt;if(m.now)clockSkew=Number(m.now)-Math.floor(Date.now()/1000);document.getElementById('expiresAt').textContent=whenStr(expAt)}else if(m&&m.ok){expired()}}).catch(function(){})},30000)}
+  function explainUnbound(j){var r=j&&j.reason;if(r==='expired')show('Your previous voucher has ended. Enter a new code to connect again.','bad');else if(r==='kicked')show('Your connection was paused by staff. Ask the counter to restore it, or enter a new voucher code.','bad');else if(r==='banned')show('This device is blocked by staff. Please contact the counter.','bad');else if(location.search.indexOf('ended=1')>=0)show('Your time is over. Enter a new voucher code to connect again.','bad')}
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+  // Mode tabs
+  document.querySelectorAll('.mode-tab').forEach(function(t){t.addEventListener('click',function(){
+    document.querySelectorAll('.mode-tab').forEach(function(x){x.classList.remove('active')});
+    t.classList.add('active');
+    var m=t.dataset.mode;
+    document.getElementById('voucherSection').style.display=m==='voucher'?'block':'none';
+    document.getElementById('buySection').className=m==='buy'?'buy-section on':'';
+  })});
+
+  // Load status and payment packages
+  fetch('/api/status',{headers:{Accept:'application/json'}}).then(function(r){return r.json()}).then(function(s){
+    if(s.ssid)document.getElementById('ssidName').textContent=s.ssid;
+    if(s.shop){document.getElementById('shop').textContent=s.shop;document.getElementById('splashBrand').textContent=s.shop.toUpperCase()}
+    if(s.lab){var l=document.getElementById('lab');l.classList.add('on');l.textContent='Lab preview · sample voucher '+s.lab_code+' · staff password '+s.lab_pass}
+    if(s.pay_online){loadPayPackages()}
+  }).catch(function(){});
+  fetch('/api/me',{headers:{Accept:'application/json'}}).then(function(r){return r.json()}).then(function(j){if(j&&j.bound)showSuccess(j);else explainUnbound(j)}).catch(function(){});
+
+  // Voucher redeem
+  code.addEventListener('input',function(){var p=clean(code.value);code.value=p.length>4?p.slice(0,4)+'-'+p.slice(4):p});
+  form.addEventListener('submit',function(e){e.preventDefault();var v=clean(code.value);if(v.length<8){show('Enter the complete voucher code.','bad');return}btn.disabled=true;checking.classList.add('on');show('');var steps=['Checking your voucher…','Verifying device binding…','Almost connected…'],i=0;checkingText.textContent=steps[0];var timer=setInterval(function(){i++;if(i<steps.length)checkingText.textContent=steps[i]},430);fetch('/api/redeem',{method:'POST',headers:{Accept:'application/json','Content-Type':'application/x-www-form-urlencoded'},body:'code='+encodeURIComponent(v)}).then(function(r){return r.json()}).then(function(j){clearInterval(timer);checking.classList.remove('on');btn.disabled=false;if(j.ok)showSuccess(j);else show(j.error||'That voucher was not accepted.','bad')}).catch(function(){clearInterval(timer);checking.classList.remove('on');btn.disabled=false;show('The portal did not answer. Please try again.','bad')})});
+
+  // Payment flow
+  function loadPayPackages(){
+    fetch('/api/pay/packages',{headers:{Accept:'application/json'}}).then(function(r){return r.json()}).then(function(j){
+      if(!j.ok)return;
+      // Only show Buy Online when the operator has configured wallet numbers
+      // AND created at least one online package
+      if(!j.packages||!j.packages.length)return;
+      if(!j.jazzcash_number&&!j.easypaisa_number)return;
+      payOnline=true;
+      payPkgs=j.packages;
+      payJcNum=j.jazzcash_number||'';
+      payEpNum=j.easypaisa_number||'';
+      payJcName=j.jazzcash_name||'';
+      payEpName=j.easypaisa_name||'';
+      document.getElementById('buyTab').style.display='';
+      renderPkgs();
+      renderMethods();
+    }).catch(function(){});
+  }
+
+  function renderPkgs(){
+    var html=payPkgs.map(function(p){
+      return '<div class="pkg-card" data-id="'+esc(p.id)+'"><b>'+esc(p.label)+'</b><small>'+durStr(p.seconds)+' · '+speedStr(p.down_kbps,p.up_kbps)+'</small><em>Rs '+esc(p.price)+'</em></div>';
+    }).join('');
+    document.getElementById('pkgGrid').innerHTML=html;
+    document.querySelectorAll('.pkg-card').forEach(function(c){c.addEventListener('click',function(){
+      document.querySelectorAll('.pkg-card').forEach(function(x){x.classList.remove('sel')});
+      c.classList.add('sel');
+      selPkg=payPkgs.filter(function(p){return p.id===c.dataset.id})[0];
+      updateProceed();
+    })});
+  }
+
+  function renderMethods(){
+    var html='';
+    if(payJcNum) html+='<div class="pay-method" data-method="jazzcash"><b>JazzCash</b><small>'+esc(payJcNum)+'</small></div>';
+    if(payEpNum) html+='<div class="pay-method" data-method="easypaisa"><b>EasyPaisa</b><small>'+esc(payEpNum)+'</small></div>';
+    if(!html) html='<div style="color:#6a7888;font-size:13px;padding:10px">No payment methods configured.</div>';
+    document.getElementById('payMethods').innerHTML=html;
+    document.querySelectorAll('.pay-method').forEach(function(c){c.addEventListener('click',function(){
+      document.querySelectorAll('.pay-method').forEach(function(x){x.classList.remove('sel')});
+      c.classList.add('sel');
+      selMethod=c.dataset.method;
+      showPayInfo();
+      updateProceed();
+    })});
+  }
+
+  function showPayInfo(){
+    var el=document.getElementById('payInfo');
+    if(selMethod==='jazzcash'){
+      el.innerHTML='<b>Send payment to JazzCash</b><div class="num">'+esc(payJcNum)+'</div>'+(payJcName?'<div style="margin-top:4px;color:#536679">Account: '+esc(payJcName)+'</div>':'')+'<div style="margin-top:8px;font-size:12px;color:#6a7888">Send the exact package amount, then enter your Transaction ID below.</div>';
+      el.style.display='block';
+    } else if(selMethod==='easypaisa'){
+      el.innerHTML='<b>Send payment to EasyPaisa</b><div class="num">'+esc(payEpNum)+'</div>'+(payEpName?'<div style="margin-top:4px;color:#536679">Account: '+esc(payEpName)+'</div>':'')+'<div style="margin-top:8px;font-size:12px;color:#6a7888">Send the exact package amount, then enter your Transaction ID below.</div>';
+      el.style.display='block';
+    }
+  }
+
+  function updateProceed(){
+    document.getElementById('proceedPay').disabled=!(selPkg&&selMethod);
+  }
+
+  // Step 1 → Step 2
+  var payRef='';
+  function requestRef(){
+    payRef='';document.getElementById('refBox').style.display='none';document.getElementById('refAdded').checked=false;
+    fetch('/api/pay/init',{method:'POST',headers:{Accept:'application/json','Content-Type':'application/x-www-form-urlencoded'},body:'package_id='+encodeURIComponent(selPkg.id)+'&method='+encodeURIComponent(selMethod)}).then(function(r){return r.json()}).then(function(j){
+      if(j&&j.ok&&j.ref){payRef=j.ref;document.getElementById('refCode').textContent=j.ref;document.getElementById('refBox').style.display='block'}
+      else{document.getElementById('tidMsg').textContent=(j&&j.error)||'Could not start the payment. Try again.';document.getElementById('tidMsg').className='msg bad'}
+    }).catch(function(){document.getElementById('tidMsg').textContent='Could not reach the portal. Try again.';document.getElementById('tidMsg').className='msg bad'});
+  }
+  document.getElementById('copyRef').addEventListener('click',function(){if(!payRef)return;var b=this;function done(){b.textContent='Copied ✓';setTimeout(function(){b.textContent='Copy Tracking ID'},1600)}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(payRef).then(done,done)}else{var t=document.createElement('textarea');t.value=payRef;document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(t);done()}});
+  document.getElementById('proceedPay').addEventListener('click',function(){
+    if(!selPkg||!selMethod)return;
+    document.getElementById('buyStep1').style.display='none';
+    document.getElementById('buyStep2').style.display='block';
+    document.getElementById('tidMsg').textContent='';
+    requestRef();
+    var methodLabel=selMethod==='jazzcash'?'JazzCash':'EasyPaisa';
+    var num=selMethod==='jazzcash'?payJcNum:payEpNum;
+    var name=selMethod==='jazzcash'?payJcName:payEpName;
+    document.getElementById('payInstructions').innerHTML='<b>Step 1: Send Rs '+esc(selPkg.price)+' via '+esc(methodLabel)+'</b><div class="num">'+esc(num)+'</div>'+(name?'<div style="margin-top:4px;color:#536679">Account: '+esc(name)+'</div>':'')+'<div style="margin-top:10px;font-size:13px"><b>Step 2:</b> Put your <b>Tracking ID</b> (below) in the transfer\'s notes box.</div><div style="margin-top:6px;font-size:13px"><b>Step 3:</b> Enter the Transaction ID (TID) from your payment SMS. Your internet activates after verification.</div><div style="margin-top:6px;font-size:12px;color:#6a7888">Package: '+esc(selPkg.label)+' · '+durStr(selPkg.seconds)+' · Rs '+esc(selPkg.price)+'</div>';
+  });
+
+  document.getElementById('backToStep1').addEventListener('click',function(){
+    document.getElementById('buyStep2').style.display='none';
+    document.getElementById('buyStep1').style.display='block';
+    document.getElementById('tidInput').value='';
+    document.getElementById('tidMsg').textContent='';
+  });
+
+  // Submit TID — auto-verify: validates TID + amount match → instant activation
+  document.getElementById('submitTid').addEventListener('click',function(){
+    var tid=document.getElementById('tidInput').value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'');
+    if(tid.length<6){document.getElementById('tidMsg').textContent='Enter a valid Transaction ID (at least 6 characters).';document.getElementById('tidMsg').className='msg bad';return}
+    if(!payRef){document.getElementById('tidMsg').textContent='No Tracking ID yet — go back and pick the package again.';document.getElementById('tidMsg').className='msg bad';requestRef();return}
+    if(!document.getElementById('refAdded').checked){document.getElementById('tidMsg').textContent='Please confirm you wrote the Tracking ID '+payRef+' in the payment notes.';document.getElementById('tidMsg').className='msg bad';return}
+    var submitBtn=document.getElementById('submitTid');
+    submitBtn.disabled=true;
+    document.getElementById('tidChecking').classList.add('on');
+    document.getElementById('tidMsg').textContent='';
+    var body='package_id='+encodeURIComponent(selPkg.id)+'&method='+encodeURIComponent(selMethod)+'&tid='+encodeURIComponent(tid)+'&ref='+encodeURIComponent(payRef);
+    fetch('/api/pay/submit',{method:'POST',headers:{Accept:'application/json','Content-Type':'application/x-www-form-urlencoded'},body:body}).then(function(r){return r.json()}).then(function(j){
+      document.getElementById('tidChecking').classList.remove('on');
+      submitBtn.disabled=false;
+      if(j.ok){
+        if(j.status==='confirmed'){
+          // === AUTO-VERIFIED — instant activation! ===
+          document.getElementById('buyStep2').style.display='none';
+          document.getElementById('buyStep4').style.display='block';
+          document.getElementById('payVoucherCode').textContent=j.voucher_code||'—';
+          document.getElementById('paySpeed').textContent=speedStr(j.down_kbps,j.up_kbps);
+          document.getElementById('payLeft').textContent=leftStr(j.left);
+          document.getElementById('payTidConfirm').textContent=j.tid||'—';
+          document.getElementById('payRefConfirm').textContent=j.ref||payRef||'—';
+          document.getElementById('downloadReceipt').href='/api/pay/receipt?pay_id='+encodeURIComponent(j.pay_id);
+        } else {
+          // Manual flow — pending, wait for staff
+          currentPayId=j.pay_id;
+          document.getElementById('pendingTid').textContent=tid;
+          document.getElementById('pendingRef').textContent=j.ref||payRef;
+          document.getElementById('pendingPkg').textContent=selPkg.label+' ('+durStr(selPkg.seconds)+')';
+          document.getElementById('pendingAmt').textContent='Rs '+selPkg.price;
+          document.getElementById('buyStep2').style.display='none';
+          document.getElementById('buyStep3').style.display='block';
+          startPolling();
+        }
+      } else {
+        document.getElementById('tidMsg').textContent=j.error||'Could not verify payment.';
+        document.getElementById('tidMsg').className='msg bad';
+        if(j.reason==='ref_expired'||j.reason==='unknown_ref'||j.reason==='missing_ref')requestRef();
+      }
+    }).catch(function(){
+      document.getElementById('tidChecking').classList.remove('on');
+      submitBtn.disabled=false;
+      document.getElementById('tidMsg').textContent='Could not reach the portal. Try again.';
+      document.getElementById('tidMsg').className='msg bad';
+    });
+  });
+
+  // Poll for confirmation
+  function startPolling(){
+    if(pollTimer)clearInterval(pollTimer);
+    pollTimer=setInterval(checkPayStatus,3000);
+    checkPayStatus();
+  }
+
+  function checkPayStatus(){
+    if(!currentPayId)return;
+    fetch('/api/pay/status?pay_id='+encodeURIComponent(currentPayId),{headers:{Accept:'application/json'}}).then(function(r){return r.json()}).then(function(j){
+      if(!j.ok||j.status==='none')return;
+      if(j.status==='confirmed'){
+        clearInterval(pollTimer);pollTimer=null;
+        document.getElementById('buyStep3').style.display='none';
+        document.getElementById('buyStep4').style.display='block';
+        document.getElementById('payVoucherCode').textContent=j.voucher_code||'—';
+        document.getElementById('paySpeed').textContent=speedStr(j.down_kbps,j.up_kbps);
+        document.getElementById('payLeft').textContent=leftStr(j.left);
+        document.getElementById('payTidConfirm').textContent=j.tid||'—';
+        document.getElementById('payRefConfirm').textContent=j.ref||payRef||'—';
+        document.getElementById('downloadReceipt').href='/api/pay/receipt?pay_id='+encodeURIComponent(j.pay_id);
+        // Also show the main success view
+        // showSuccess(j); // keep the payment success view with download button
+      } else if(j.status==='rejected'){
+        clearInterval(pollTimer);pollTimer=null;
+        document.getElementById('buyStep3').style.display='none';
+        document.getElementById('buyStep1').style.display='block';
+        show('Payment was rejected: '+(j.note||'Transaction ID could not be verified.')+'. Please try again or buy a voucher from the counter.','bad');
+        document.querySelectorAll('.mode-tab').forEach(function(x){x.classList.remove('active')});
+        document.querySelector('[data-mode="voucher"]').classList.add('active');
+        document.getElementById('voucherSection').style.display='block';
+        document.getElementById('buySection').className='buy-section';
+      }
+    }).catch(function(){});
+  }
+})();
+</script>
+</body>
+</html>
