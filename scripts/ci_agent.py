@@ -101,6 +101,8 @@ def download_job_log(repo, token, job_id):
 # Buildroot package builds, kernel config, syslinux/isolinux packaging,
 # and the shell-based test suite.
 PATTERNS = [
+    (re.compile(r"gelf\.h: No such file or directory|libelf.*not (found|detected)", re.I), "The kernel's objtool needs host libelf (gelf.h) for the ORC unwinder — the workflow must apt-get install libelf-dev before building (fixed in build-iso.yml)."),
+    (re.compile(r"openssl/.*\.h: No such file|extract-cert.*Error", re.I), "scripts/extract-cert needs OpenSSL headers (CONFIG_SYSTEM_TRUSTED_KEYRING defaults on) — apt-get install libssl-dev."),
     (re.compile(r"No space left on device"), "Runner ran out of disk space — Buildroot needs ~10GB; the workflow should free runner images (dotnet/android/ghc) before building."),
     (re.compile(r"E: Unable to locate package|apt-get.*fail", re.I), "A host package (apt dependency for the Buildroot toolchain) failed to install — likely an upstream apt mirror hiccup, or the runner image changed."),
     (re.compile(r"Config\.in.*syntax error|Kconfig.*error", re.I), "A Buildroot Config.in/Kconfig syntax error — check package/rns/Config.in or the defconfig for a malformed option."),
@@ -110,6 +112,7 @@ PATTERNS = [
     (re.compile(r"tests/run-tests\.sh.*FAIL|not ok \d", re.I), "The regression suite (tests/run-tests.sh) failed — a shell script under rootfs-overlay/usr/share/rns/bin regressed; re-run locally with `sh tests/run-tests.sh` for the failing case name."),
     (re.compile(r"curl.*(Could not resolve|timed out|Connection refused)", re.I), "A download step failed to reach a mirror (Buildroot source tarball or the buildroot release tarball itself) — likely a transient network issue; retry."),
     (re.compile(r"No such file or directory.*buildroot-\d"), "The Buildroot tarball for BR_VER wasn't found after download — check BR_VER in build.sh matches an existing Buildroot release."),
+    (re.compile(r"mkdir: cannot create directory.*File exists|target-finalize.*Error"), "'mkdir -p' in post-build.sh hit a symlink (buildroot installs /etc/dropbear as a symlink to /var/run/dropbear) and killed target-finalize — guard it with [ ! -L ... ] (fixed in post-build.sh)."),
     (re.compile(r"Permission denied"), "A permissions issue — check post-build.sh chmod steps and that the runner isn't running as an unexpected user."),
 ]
 
