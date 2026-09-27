@@ -46,11 +46,11 @@ function dt(ts,   local, days, z, era, doe, yoe, y, doy, mp, d, m, hh, mi) {
   return sprintf("%04d-%02d-%02d %02d:%02d", y, m, d, hh, mi)
 }
 
-function dur(sec,   d, h, m) {
+function dur(sec,   d, h, m, _s) {
   sec = sec + 0
   if (sec <= 0) return "-"
-  if (sec % 86400 == 0) { d = sec / 86400; return d " day" (d == 1 ? "" : "s") }
-  if (sec % 3600 == 0) { h = sec / 3600; return h " hour" (h == 1 ? "" : "s") }
+  if (sec % 86400 == 0) { d = sec / 86400; _s = (d == 1) ? "" : "s"; return d " day" _s }
+  if (sec % 3600 == 0) { h = sec / 3600; _s = (h == 1) ? "" : "s"; return h " hour" _s }
   m = int((sec + 59) / 60); if (m < 1) m = 1
   return m " min"
 }
@@ -168,7 +168,13 @@ END {
 
   obj(1); put("<</Type/Catalog/Pages 2 0 R>>"); objclose()
   kids = ""
-  for (i = 1; i <= pages; i++) kids = kids (i > 1 ? " " : "") (3 + 2 * i) " 0 R"
+  # No bare "name (" here: older busybox awk reads that as a call to a function
+  # of that name and dies with "Call to undefined function".
+  for (i = 1; i <= pages; i++) {
+    _p = 3 + 2 * i
+    if (kids != "") kids = kids " "
+    kids = kids _p " 0 R"
+  }
   obj(2); put("<</Type/Pages/Kids[" kids "]/Count " pages ">>"); objclose()
   obj(3); put("<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>"); objclose()
   obj(4); put("<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>"); objclose()
