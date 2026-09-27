@@ -415,6 +415,41 @@ _D=$(ymd_shift_helper() { :; }; today_ymd_d=$("$BB" date '+%Y-%m-%d'); printf '%
 eq "ymd_shift lands on a real date" \
    "7" "$(nstore shift "$_D" -7 | "$BB" awk -F- '{print ($1>2000 && $2>=1 && $2<=12 && $3>=1 && $3<=31) ? 7 : 0}')"
 
+# ------------------------------------------- store mutex (was a no-op flock)
+echo "== with_lock actually excludes a second writer"
+mkdir -p "$WORK/lockdata"
+lklock() { BB=$BB RNS_LAB=1 RNS_HOME="$RNSH" RNS_DATA="$WORK/lockdata" \
+  "$BB" sh -c '. "$RNS_HOME/bin/common.sh"; . "$RNS_HOME/bin/store.sh"; . "$RNS_HOME/bin/net.sh"; store_init; with_lock "$@"' _ "$@"; }
+# Hold the lock across a sleep, then check that a second caller cannot get in
+# until the holder has finished. This is the deterministic version of "does the
+# mutex work at all" -- a no-op lock (which is what a missing flock applet
+# gives you) lets the second caller straight through.
+cat > "$WORK/holder.sh" <<'EOS'
+. "$RNS_HOME/bin/common.sh"; . "$RNS_HOME/bin/store.sh"; . "$RNS_HOME/bin/net.sh"
+store_init
+with_lock sh -c 'echo in > "$RNS_DATA/phase"; sleep 3; echo out > "$RNS_DATA/phase"'
+EOS
+BB=$BB RNS_LAB=1 RNS_HOME="$RNSH" RNS_DATA="$WORK/lockdata" "$BB" sh "$WORK/holder.sh" &
+sleep 2
+eq "the holder is inside the critical section" "in" \
+   "$(cat "$WORK/lockdata/phase" 2>/dev/null)"
+_t0=$("$BB" date +%s)
+lklock true
+_t1=$("$BB" date +%s)
+eq "a second writer waits for the lock" "yes" \
+   "$("$BB" awk -v a="$_t0" -v b="$_t1" 'BEGIN{print (b-a>=1) ? "yes" : "no"}')"
+eq "and only runs once the holder is done" "out" \
+   "$(cat "$WORK/lockdata/phase" 2>/dev/null)"
+wait
+eq "the lock directory is released" "gone" \
+   "$([ -d "$WORK/lockdata/store.lock.d" ] && echo present || echo gone)"
+# A writer that died holding the lock must not wedge every later request.
+mkdir -p "$WORK/lockdata/store.lock.d"
+printf '%s\n' "999999" > "$WORK/lockdata/store.lock.d/pid"
+eq "a lock whose owner is gone is stolen" "ok" \
+   "$(lklock client_touch 02:00:00:00:00:43 10.9.9.43 >/dev/null 2>&1 && echo ok)"
+unset _t0 _t1
+
 # Regression for a silent data-loss bug: awk's -v coerces a value that is a
 # *valid numeric string* into a number, and a field that looks numeric is
 # compared numerically too. Voucher codes are random hex, so codes like
@@ -598,7 +633,8 @@ _rows="$WORK/vrows.tsv"
 printf 'ABCD-1234\tStudent Hour\t3600\t2048\t1024\t%s\t%s\t25\n' "$_NOW" "$((_NOW + 3600))" > "$_rows"
 printf 'WXYZ-9876\tNight Bundle\t86400\t4096\t2048\t%s\t%s\t100\n' "$_NOW" "$((_NOW + 86400))" >> "$_rows"
 _p=$(nstore pdfv "$_rows" "RNS Internet")
-[ -n "$_p" ] && ok "pdf_render emits a voucher slip" || bad "pdf_render produced nothing"
+[ -n "$_p" ] && ok "pdf_render emits a voucher slip" \
+  || bad "pdf_render produced nothing [$(cat "$WORK/data/pdf.err" 2>/dev/null)]"
 eq "the voucher PDF is structurally valid" "ok" "$(pdfcheck "$_p")"
 has 'VOUCHER' "$(LC_ALL=C "$BB" awk '/stream$/{f=1;next} /^endstream/{f=0} f' "$_p")" "the slip says VOUCHER"
 rm -f "$_p"
