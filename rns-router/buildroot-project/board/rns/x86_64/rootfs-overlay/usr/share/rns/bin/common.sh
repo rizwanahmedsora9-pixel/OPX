@@ -128,6 +128,15 @@ form_get() {
   urldecode "$_raw"
 }
 
+# form_get cannot tell "field absent" from "field left empty", and the
+# payment settings form has to be able to *clear* a wallet number. This one
+# reports whether the key was submitted at all.
+form_has() {
+  _key=$1
+  printf '%s&%s' "$RNS_QUERY" "$RNS_BODY" | "$BB" tr '&' '\n' \
+    | "$BB" grep -q "^${_key}="
+}
+
 cfg_path() { printf '%s/config.env' "$RNS_DATA"; }
 
 cfg_get() {
@@ -150,19 +159,43 @@ cfg_set() {
   fi
 }
 
+# Serialise writers to the .tsv files.
+#
+# This used to be "exec 9>>lock; flock -x 9", which is a no-op wherever the
+# flock applet is missing -- and it is missing on Debian/Ubuntu busybox *and*
+# unset in Buildroot's busybox config, so on the router every write ran
+# unserialised and two concurrent requests could clobber each other's tmp+mv.
+# mkdir is atomic on every filesystem we run on and needs no applet, so use a
+# mkdir mutex instead. A crashed writer leaves the directory behind, so the
+# owner pid is recorded and a lock whose owner is gone is stolen rather than
+# wedging the gateway until reboot.
 with_lock() {
   mkdir -p "$RNS_DATA"
   if [ "${RNS_LOCK_DEPTH:-0}" -gt 0 ]; then
     "$@"
     return $?
   fi
-  exec 9>>"$RNS_DATA/store.lock"
-  "$BB" flock -x 9
+  _lkdir="$RNS_DATA/store.lock.d"
+  _i=0
+  while ! mkdir "$_lkdir" 2>/dev/null; do
+    _p=$(cat "$_lkdir/pid" 2>/dev/null)
+    if [ -z "$_p" ] || ! kill -0 "$_p" 2>/dev/null; then
+      rm -rf "$_lkdir"
+      continue
+    fi
+    _i=$((_i + 1))
+    if [ "$_i" -ge 30 ]; then
+      rm -rf "$_lkdir"
+      continue
+    fi
+    sleep 1
+  done
+  printf '%s\n' "$$" > "$_lkdir/pid" 2>/dev/null
   RNS_LOCK_DEPTH=1
   "$@"
   _rc=$?
   RNS_LOCK_DEPTH=0
-  "$BB" flock -u 9
+  rm -rf "$_lkdir"
   return $_rc
 }
 
@@ -286,4 +319,66 @@ epoch_to_ymd() {
 
 today_ymd() {
   "$BB" date '+%Y-%m-%d' 2>/dev/null || date '+%Y-%m-%d'
+}
+
+# Shift a YYYY-MM-DD date by whole days, staying in local time. Used for the
+# default sales range so the window starts on a real midnight rather than an
+# epoch that a DST change has drifted off by an hour.
+ymd_shift() {
+  _d=$1; _n=$2
+  _e=$(ymd_to_epoch "$_d") || return 1
+  epoch_to_ymd "$((_e + _n * 86400))"
+}
+
+# Render a paisa/rupee amount the way the sales tables and the PDF slips
+# want it: always two decimals, never a bare "0.5".
+money_fmt() {
+  printf '%s' "$1" | "$BB" awk '
+    { s = $0
+      if (s == "" || s !~ /^[0-9]+(\.[0-9]*)?$/) { print "0.00"; exit }
+      if (index(s, ".") > 0) {
+        ip = substr(s, 1, index(s, ".") - 1)
+        fr = substr(s, index(s, ".") + 1) "00"
+      } else { ip = s; fr = "00" }
+      sub(/^0+/, "", ip); if (ip == "") ip = "0"
+      printf "%s.%s\n", ip, substr(fr, 1, 2) }'
+}
+
+# Random, unambiguous reference / id characters. No 0/O or 1/I, because an
+# operator reads these out over the counter or off a phone screen.
+rand_token() {
+  _n=${1:-8}
+  # od prints lowercase hex; uppercase it before the alphabet lookup or every
+  # a-f nibble silently becomes index 0 and the token degenerates into 2s.
+  "$BB" od -An -N64 -tx1 /dev/urandom 2>/dev/null | "$BB" tr -d ' \n' \
+    | "$BB" tr 'a-f' 'A-F' \
+    | "$BB" awk -v n="$_n" 'BEGIN {
+        a = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; L = length(a)
+      } {
+        s = $0; out = ""
+        for (i = 1; i + 1 <= length(s) && length(out) < n; i += 2) {
+          v = (index("0123456789ABCDEF", substr(s, i, 1)) - 1) * 16 \
+            + (index("0123456789ABCDEF", substr(s, i + 1, 1)) - 1)
+          if (v < 0) v = 0
+          out = out substr(a, (v % L) + 1, 1)
+        }
+        while (length(out) < n) out = out "2"
+        printf "%s", out }'
+}
+
+# Write the PDF awk output to a temp file and answer with it. The awk script
+# is the only PDF writer in the system — no ghostscript, no language runtime.
+pdf_render() {
+  _mode=$1; _rows=$2; _shop=$3; _out="$RNS_DATA/pdf.$$"; _err="$RNS_DATA/pdf.err"
+  : > "$_err"
+  # The awk stderr used to go to /dev/null, so a broken slip came back as an
+  # empty file with no clue why. Keep it: it is the only signal there is.
+  LC_ALL=C "$BB" awk -v mode="$_mode" -v off="$(utc_offset_seconds)" \
+    -v shop="$_shop" -f "$RNS_HOME/bin/vouchers-pdf.awk" "$_rows" > "$_out" 2>"$_err"
+  if [ ! -s "$_out" ]; then
+    rm -f "$_out"
+    log_event pdf_fail "$_mode $(cat "$_err" 2>/dev/null)"
+    return 1
+  fi
+  printf '%s' "$_out"
 }

@@ -145,6 +145,43 @@ gate_heal() {
   fw_rebuild
 }
 
+# Regenerate /data/rns/hostapd.conf from config.env and ask a running hostapd
+# to reload it, so the Network tab in the staff panel changes the live AP
+# instead of only the next boot. hostapd_cli reload is the supported way to
+# apply a new SSID/channel/client-limit without dropping every client; with no
+# control socket (no wlan interface, or hostapd not running) this is a no-op
+# and the settings simply wait for the next boot.
+hostapd_apply() {
+  _wl=""
+  [ -f "$RNS_DATA/wlan.if" ] && _wl=$("$BB" tr -d ' \r\n' < "$RNS_DATA/wlan.if" 2>/dev/null)
+  [ -n "$_wl" ] || return 1
+  _ssid=$(cfg_get SSID RNS); _ch=$(cfg_get CHANNEL 6)
+  _hw=$(cfg_get HW_MODE g); _ms=$(cfg_get MAX_STA 128)
+  _conf="$RNS_DATA/hostapd.conf"
+  {
+    printf 'interface=%s\n' "$_wl"
+    printf 'driver=nl80211\n'
+    printf 'ssid=%s\n' "$_ssid"
+    printf 'hw_mode=%s\n' "$_hw"
+    printf 'channel=%s\n' "$_ch"
+    printf 'auth_algs=1\n'
+    printf 'ignore_broadcast_ssid=0\n'
+    printf 'ap_isolate=1\n'
+    printf 'max_num_sta=%s\n' "$_ms"
+    printf 'bridge=br0\n'
+    printf 'ctrl_interface=/var/run/hostapd\n'
+  } > "$_conf" 2>/dev/null
+  is_lab && return 0
+  for _c in /usr/sbin/hostapd_cli /usr/bin/hostapd_cli /sbin/hostapd_cli hostapd_cli; do
+    command -v "$_c" >/dev/null 2>&1 || continue
+    for _ctrl in /var/run/hostapd /run/hostapd; do
+      [ -d "$_ctrl" ] || continue
+      "$_c" -p "$_ctrl" -i "$_wl" reload >> "$LOG" 2>&1 && return 0
+    done
+  done
+  return 0
+}
+
 shape_apply() {
   is_lab && return 0
   command -v tc >/dev/null 2>&1 || return 0
@@ -172,7 +209,7 @@ deauth_mac() {
   _mac=$(sanitize_mac "$1")
   [ -n "$_mac" ] || return 0
   is_lab && return 0
-  _ip=$( "$BB" awk -F'|' -v m="$_mac" '$1==m {print $2; exit}' "$CFILE" 2>/dev/null )
+  _ip=$( "$BB" awk -F'|' -v m="k$_mac" '"k" $1==m {print $2; exit}' "$CFILE" 2>/dev/null )
   if [ -n "$_ip" ] && command -v conntrack >/dev/null 2>&1; then
     conntrack -D -s "$_ip" >/dev/null 2>&1 || true
     conntrack -D -d "$_ip" >/dev/null 2>&1 || true
@@ -219,7 +256,7 @@ neigh_scan() {
   is_lab && return 0
   [ -f /proc/net/arp ] || return 0
   _lan=$(lan_if)
-  "$BB" awk -v ifc="$_lan" '$6==ifc && $4 != "00:00:00:00:00:00" {print $4, $1}' /proc/net/arp \
+  "$BB" awk -v ifc="k$_lan" '"k" $6==ifc && $4 != "00:00:00:00:00:00" {print $4, $1}' /proc/net/arp \
     | while read -r mac ip; do
         client_touch "$mac" "$ip" ""
       done

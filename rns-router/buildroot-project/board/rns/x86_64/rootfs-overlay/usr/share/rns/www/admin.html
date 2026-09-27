@@ -2,367 +2,433 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08131f">
 <title>RNS Gateway · Staff</title>
 <style>
-:root{--bg:#081521;--panel:#10263a;--panel2:#15304a;--line:rgba(200,230,236,.14);--text:#f2f8fa;--muted:#9fb4bf;--aqua:#6fe3da;--gold:#f2c777;--red:#ff8d97;--green:#8ee6bf;--r:14px}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,sans-serif}
-button,input,select{font:inherit;color:inherit}button{cursor:pointer}
-h1,h2,h3{margin:0;font-weight:800}
-#gate{min-height:100vh;display:grid;place-items:center;padding:20px}
-#app{display:none}
-.hidden{display:none!important}
-.login{width:min(100%,400px);padding:26px;border:1px solid var(--line);border-radius:20px;background:var(--panel)}
-.login h1{font-size:24px;margin:20px 0 6px}
-.hint{color:var(--muted);margin:0 0 16px}
+:root{--bg:#081521;--side:#0b1d2c;--panel:#10263a;--panel2:#15304a;--line:rgba(200,230,236,.14);--text:#f2f8fa;--muted:#9fb4bf;--aqua:#6fe3da;--aqua-ink:#062229;--gold:#f2c777;--red:#ff8d97;--green:#8ee6bf;--r:14px;--gap:12px;--shadow:0 8px 24px rgba(0,0,0,.22)}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer;touch-action:manipulation}.hidden{display:none!important}
+h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.02em}
+
+/* ---- login ---- */
+#gate{min-height:100vh;display:grid;place-items:center;padding:20px;opacity:1;transition:opacity .35s ease}
+#gate.hidden{display:none!important}
+#app{opacity:0;transition:opacity .35s ease}
+#app:not(.hidden){opacity:1}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.login{animation:fadeIn .4s ease}
+.login{width:min(100%,420px);padding:28px 24px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:var(--shadow)}
+.login-brand{display:flex;gap:14px;align-items:center}
+.logo{flex:0 0 auto;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#0e4a68,#0fb3a8);color:#fff;font-size:12px;font-weight:900;letter-spacing:.1em;box-shadow:0 4px 14px rgba(15,179,168,.35),inset 0 1px 0 rgba(255,255,255,.18);position:relative;overflow:hidden}
+.logo:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.35),transparent 55%)}
+.logo span{position:relative}
+.logo-svg{position:relative;width:56%;height:56%}
+.eyebrow{color:var(--aqua);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.login h1{font-size:26px;margin:22px 0 6px}
+.hint{color:var(--muted);font-size:14px;margin:0 0 18px}
 .field{margin:12px 0}
-.field label{display:block;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
-.input{display:block;width:100%;min-height:42px;background:#071420;border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:15px;outline:0}
-.input:focus{border-color:var(--aqua)}
-.primary{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:44px;border:0;border-radius:10px;background:linear-gradient(110deg,#0e7a82,#0d3a55);color:#fff;font-weight:800}
-.error{min-height:20px;color:var(--red);font-size:13px;margin:10px 0 0}
-header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
-header.top h1{font-size:16px}
-header.top .actions{display:flex;gap:8px}
-nav.tabs{display:flex;gap:4px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
-nav.tabs button{min-height:36px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-weight:700;white-space:nowrap}
-nav.tabs button.active{background:var(--aqua);color:#062229}
-main{padding:16px 18px 40px}
+.field label,.settings-block label{display:block;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.input{display:block;width:100%;min-height:44px;background:#071420;border:1px solid var(--line);border-radius:11px;outline:0;padding:10px 13px;font-size:16px}
+.input:focus{border-color:var(--aqua);box-shadow:0 0 0 3px rgba(111,227,218,.15)}
+select.input{-webkit-appearance:menulist;appearance:menulist;padding-right:8px}
+.password{position:relative}.password .input{padding-right:64px}
+.showpw{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--aqua);font-size:12px;font-weight:700;padding:8px 10px}
+.remember{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;margin:14px 0}.remember input{accent-color:var(--aqua);width:18px;height:18px}
+.primary{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:46px;border:0;border-radius:11px;padding:0 16px;background:linear-gradient(110deg,#0e7a82,#0d3a55);color:#fff;font-weight:800;letter-spacing:.04em}
+.primary:disabled{opacity:.6}
+.error{min-height:20px;color:var(--red);font-size:13px;margin:12px 0 0}
+.lab-banner{margin:14px 0;padding:10px 12px;border:1px solid rgba(242,199,119,.3);border-radius:11px;background:rgba(242,199,119,.09);color:var(--gold);font-size:12px}
+
+/* ---- app shell: sidebar + content ---- */
+#app{display:grid;grid-template-columns:232px minmax(0,1fr);grid-template-areas:"nav top" "nav stats" "nav main";min-height:100vh}
+.nav{grid-area:nav;position:sticky;top:0;align-self:start;height:100vh;display:flex;flex-direction:column;gap:4px;padding:18px 14px;background:var(--side);border-right:1px solid var(--line)}
+.brandline{display:flex;gap:11px;align-items:center;padding:4px 6px 18px}
+.brandline .logo{width:40px;height:40px;border-radius:12px}
+.brandline strong{display:block;font-size:14px;font-weight:800;letter-spacing:.08em;line-height:1.25}
+.brandline small{display:block;color:var(--muted);font-size:11.5px;font-weight:600;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;border:0;border-radius:11px;background:transparent;color:var(--muted);padding:0 12px;font-size:14px;font-weight:700;text-align:left}
+.nav button:before{content:attr(data-ico);width:22px;text-align:center;font-size:15px;opacity:.9}
+.nav button:hover{background:rgba(255,255,255,.05);color:var(--text)}
+.nav button.active{background:var(--aqua);color:var(--aqua-ink)}
+.nav .navfoot{margin-top:auto;padding:12px 6px 0;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+.top{grid-area:top;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 24px 0}
+.top .brandline{display:none;padding:0}.top h1{display:block}
+.top h1{font-size:20px}
+.top-actions{display:flex;gap:8px;align-items:center}
+.stats{grid-area:stats;display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);padding:16px 24px 0}
+.stat{padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.stat b{display:block;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+#workspace{grid-area:main;padding:16px 24px 32px}
 .panel{display:none}.panel.active{display:block}
-.card{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:16px;margin-bottom:12px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
-.stat{padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel2)}
-.stat b{display:block;font-size:22px}
-.stat span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.toolbar .input{width:auto;flex:1 1 200px;max-width:280px}
-.small{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:0 12px;color:var(--text);font-size:12px;font-weight:600}
+.glass{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:20px}
+.glass+.glass{margin-top:var(--gap)}
+.section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}
+.section-head h2{font-size:20px}
+.section-head p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.section-head>.small,.section-head>.eyebrow{flex:0 0 auto;white-space:nowrap}
+
+/* ---- buttons ---- */
+.ghost,.danger,.small,.filter,.qrange{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:0 12px;color:var(--text);font-size:13px;font-weight:600;white-space:nowrap}
 .danger{color:var(--red);border-color:rgba(255,141,151,.35)}
+.filter,.qrange{background:transparent;color:var(--muted)}
+.filter.active,.qrange.active{color:var(--aqua-ink);background:var(--aqua);border-color:var(--aqua)}
+.actions,.row-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar .input{flex:1 1 220px;max-width:320px;width:auto}
+.toolbar label{color:var(--muted);font-size:12px}
+.toolbar input[type=date]{flex:0 1 170px}
+
+/* ---- sell ---- */
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.plan{min-height:104px;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel2);padding:14px;transition:border-color .15s}
+.plan:hover,.plan:focus-visible{border-color:var(--aqua);outline:0}
+.plan b{display:block;font-size:16px}
+.plan small{display:block;color:var(--muted);margin-top:6px;line-height:1.4;font-size:12px}
+.plan em{display:block;color:var(--gold);font-style:normal;font-size:12px;font-weight:700;margin-top:8px}
+.sell-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.sell-tools label{margin:0;color:var(--muted);font-size:12px}
+.sell-tools .input{width:auto}.sell-tools .count{flex:0 0 84px}.sell-tools #mintNote{flex:1 1 200px;max-width:none!important}
+.ticket{display:none;margin-top:16px;border:1px solid rgba(111,227,218,.35);border-radius:var(--r);background:rgba(111,227,218,.08);padding:16px}
+.ticket.show{display:block}
+.ticket .code{font:800 30px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:var(--aqua);word-break:break-all;margin-top:6px}
+.ticket .meta{color:var(--muted);font-size:13px;margin-top:6px}
+.ticket .more{color:#d6e7ea;font:600 14px/1.7 ui-monospace,Menlo,Consolas,monospace;word-break:break-all;margin-top:8px}
+
+/* ---- tables ---- */
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);-webkit-overflow-scrolling:touch}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.15)}
-.mono{font-family:ui-monospace,monospace;font-weight:700}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:rgba(0,0,0,.12)}
+td .small{min-height:32px;padding:0 10px;font-size:12px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700}
 .muted{color:var(--muted)}
-.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 8px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 8px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
 .pill.active,.pill.new{color:var(--green);border-color:rgba(142,230,191,.45)}
 .pill.revoked,.pill.expired,.pill.banned,.pill.kicked{color:var(--red);border-color:rgba(255,141,151,.4)}
-.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.plan{min-height:98px;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel2);padding:14px}
-.plan b{display:block;font-size:15px}
-.plan small{display:block;color:var(--muted);margin-top:4px;font-size:12px}
-.plan em{display:block;color:var(--gold);font-style:normal;font-size:13px;font-weight:700;margin-top:6px}
-.ticket{display:none;margin-top:14px;border:1px solid rgba(111,227,218,.35);border-radius:var(--r);background:rgba(111,227,218,.08);padding:14px}
-.ticket.show{display:block}
-.ticket .code{font:800 26px/1.2 ui-monospace,monospace;letter-spacing:.08em;color:var(--aqua);word-break:break-all;margin-top:4px}
-.empty{color:var(--muted);padding:20px;text-align:center}
-.toast{position:fixed;right:16px;bottom:16px;z-index:30;max-width:320px;padding:12px 14px;border:1px solid rgba(111,227,218,.3);border-radius:12px;background:#12314a;box-shadow:0 8px 24px rgba(0,0,0,.28);color:#eaf8f7;transform:translateY(16px);opacity:0;pointer-events:none;transition:.2s}
+.pill.waiting{color:var(--gold);border-color:rgba(242,199,119,.4)}
+.empty{color:var(--muted);padding:24px;text-align:center}
+.sub-head{margin:20px 0 8px;font-size:15px;color:var(--aqua)}
+.sales-note{font-size:12px;color:var(--gold);margin:0 0 12px}
+#tab-sales .stats{padding:0;margin-bottom:14px}
+
+/* ---- settings ---- */
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
+.settings-grid .glass{margin:0}
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.subnav button{display:inline-flex;align-items:center;min-height:36px;border:1px solid var(--line);border-radius:99px;background:var(--panel2);color:var(--muted);padding:0 14px;font-size:12px;font-weight:700}
+.subnav button:hover{color:var(--text)}
+.subnav button.active{background:var(--aqua);color:var(--aqua-ink);border-color:var(--aqua)}
+.settings-panel{display:none}
+.settings-panel.active{display:block}
+.client-list{display:grid;gap:10px}
+.client-card{display:grid;grid-template-columns:1fr auto;grid-template-areas:"id pill" "meta meta" "actions actions";align-items:start;gap:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel2);padding:14px 16px}
+.client-id{grid-area:id;min-width:0}
+.client-id b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client-id .mono{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.client-card>.pill{grid-area:pill;align-self:start;justify-self:end}
+.client-meta{grid-area:meta;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+.client-meta div{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.client-meta div b{display:block;color:var(--text);font-size:13px;font-weight:700;text-transform:none;letter-spacing:0;margin-top:2px}
+.client-card>.actions{grid-area:actions;justify-content:flex-end}
+@media(min-width:480px){.client-meta{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.settings-block h3{font-size:15px;color:var(--aqua);margin-bottom:12px}
+.settings-block .field{margin:10px 0}
+.settings-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.settings-actions .primary{width:auto;flex:1 1 auto}
+.package-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+.package-form .field{margin:0}.package-form .wide{grid-column:1/-1}
+.package-list{display:grid;gap:8px;margin-top:12px}
+.package-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:12px;background:var(--panel2)}
+.package-row small{color:var(--muted)}
+.activity{max-height:300px;overflow:auto}
+.activity div{padding:8px 0;border-bottom:1px solid var(--line);font-size:12px;word-break:break-word}
+.activity time{color:var(--muted);margin-right:6px}
+.toast{position:fixed;right:18px;bottom:20px;z-index:30;max-width:340px;padding:12px 15px;border:1px solid rgba(111,227,218,.3);border-radius:12px;background:#12314a;box-shadow:var(--shadow);color:#eaf8f7;transform:translateY(16px);opacity:0;pointer-events:none;transition:.2s}
 .toast.on{transform:none;opacity:1}
-@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}nav.tabs{overflow-x:auto}}
+
+/* ---- tablets: narrower sidebar ---- */
+@media(max-width:1100px){#app{grid-template-columns:200px minmax(0,1fr)}.top,.stats,#workspace{padding-left:16px;padding-right:16px}.stats{grid-template-columns:repeat(2,1fr)}}
+/* ---- phones: fixed 5-item bottom bar + "More" sheet ---- */
+.mnav{display:none}
+.sheet-overlay{display:none}
+.sheet{display:none}
+@media(max-width:900px){
+  #app{display:block;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .top{padding:14px 14px 0}.top .brandline{display:flex}.top h1{display:none}.top-actions #live{display:none}
+  .stats{padding:12px 14px 0;grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat{padding:12px 14px}.stat b{font-size:22px}
+  #workspace{padding:12px 14px 20px}
+  .nav{display:none}
+  /* fixed-column grid, not a scroller: every tab is always visible, nothing can collapse to one item */
+  .mnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));background:rgba(8,21,33,.97);border-top:1px solid var(--line)}
+  .mnav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:50px;padding:4px 2px;border:0;background:transparent;color:var(--muted);font-size:10px;font-weight:700;border-radius:10px;overflow:hidden;white-space:nowrap}
+  .mnav button:before{content:attr(data-ico);font-size:17px}
+  .mnav button.active{color:var(--aqua);background:rgba(111,227,218,.14)}
+  .sheet-overlay.show{display:block;position:fixed;inset:0;z-index:21;background:rgba(3,10,16,.6)}
+  .sheet{display:block;position:fixed;left:0;right:0;bottom:0;z-index:22;transform:translateY(100%);transition:transform .22s ease;background:var(--side);border-top:1px solid var(--line);border-radius:16px 16px 0 0;padding:10px 10px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+  .sheet.show{transform:translateY(0)}
+  .sheet-handle{width:36px;height:4px;border-radius:99px;background:var(--line);margin:2px auto 10px}
+  .sheet-title{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:0 6px 8px}
+  .sheet button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;border:0;border-radius:11px;background:transparent;color:var(--text);padding:0 12px;font-size:14px;font-weight:700;text-align:left}
+  .sheet button:before{content:attr(data-ico);width:22px;text-align:center;font-size:16px;opacity:.9}
+  .sheet button.active{background:rgba(111,227,218,.14);color:var(--aqua)}
+  .glass{padding:14px;border-radius:12px}
+  .section-head{flex-wrap:wrap}.section-head>div{flex:1 1 100%}
+  .toolbar .input{flex:1 1 100%;max-width:none}
+  .toolbar input[type=date]{flex:1 1 40%}
+  /* keep every list as real compact rows (Excel-style) — never stack fields, scroll sideways instead */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{font-size:12px}
+  th,td{padding:8px 9px;white-space:nowrap}
+  td.wrap-ok{white-space:normal}
+  .plans{grid-template-columns:1fr 1fr}
+  .ticket .code{font-size:24px}
+  .settings-grid{grid-template-columns:1fr}
+  .settings-grid .glass[style*="grid-column"]{grid-column:auto!important}
+  .toast{left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));max-width:none}
+}
+@media(max-width:380px){.plans{grid-template-columns:1fr}.package-form{grid-template-columns:1fr}.package-form .wide{grid-column:auto}.top h1{font-size:18px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{.nav,.top,.stats,.toolbar,.section-head .small,.toast{display:none!important}#app{display:block}body{background:#fff;color:#000}.glass{border:0;padding:0;background:none}}
 </style>
 </head>
 <body>
-
-<div id="gate">
-  <section class="login">
-    <div style="color:var(--aqua);font-size:11px;font-weight:800;letter-spacing:.12em">RNS GATEWAY</div>
-    <h1 id="gateTitle">Staff login</h1>
-    <p class="hint" id="gateHint">Sign in to control the hotspot.</p>
-    <div class="field"><label>Password</label><input class="input" id="pass" type="password" autocomplete="current-password"></div>
-    <label class="remember" style="display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px;margin:12px 0">
-      <input id="remember" type="checkbox"> Remember this device
-    </label>
-    <button class="primary" id="gateBtn" type="button">Enter dashboard</button>
-    <div class="error" id="gateMsg"></div>
-  </section>
-</div>
-
-<div id="app">
-  <header class="top">
-    <h1 id="shopTitle">RNS Internet</h1>
-    <div class="actions">
-      <span class="muted" style="font-size:12px;align-self:center">● Gate armed</span>
-      <button class="small" id="logout" type="button">Log out</button>
-    </div>
-  </header>
-  <nav class="tabs" id="nav">
-    <button class="active" data-tab="sell">Sell</button>
-    <button data-tab="codes">Codes</button>
-    <button data-tab="clients">Clients</button>
-    <button data-tab="packages">Packages</button>
-    <button data-tab="network">Network</button>
-    <button data-tab="activity">Activity</button>
-  </nav>
-  <main>
-    <div class="stats">
-      <div class="stat"><b id="nOnline">0</b><span>Online</span></div>
-      <div class="stat"><b id="nWait">0</b><span>Waiting</span></div>
-      <div class="stat"><b id="nActive">0</b><span>Active</span></div>
-      <div class="stat"><b id="nNew">0</b><span>Unused</span></div>
-    </div>
-
-    <section class="panel active" id="tab-sell">
-      <div class="card">
-        <h2 style="margin-bottom:10px">Sell access</h2>
-        <div class="plans" id="plans"><div class="empty">Loading packages…</div></div>
-        <div class="toolbar" style="margin-top:14px">
-          <label class="muted" style="font-size:12px">Qty</label>
-          <input class="input" id="count" type="number" min="1" max="100" value="1" style="flex:0 0 80px;max-width:80px">
-          <input class="input" id="mintNote" placeholder="Note (optional)">
-        </div>
-        <div class="ticket" id="ticket">
-          <div style="color:var(--aqua);font-size:11px;font-weight:800;letter-spacing:.12em">NEW VOUCHER</div>
-          <div class="code" id="bigCode">—</div>
-          <div class="muted" id="ticketMeta" style="margin-top:4px"></div>
-          <div class="mono muted" id="moreCodes" style="margin-top:6px;font-size:12px;word-break:break-all"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="tab-codes">
-      <div class="card">
-        <div class="toolbar">
-          <input class="input" id="codeSearch" placeholder="Search code, MAC, IP…">
-          <button class="small" id="refreshCodes" type="button">Refresh</button>
-        </div>
-        <div style="overflow:auto">
-          <table><thead><tr><th>Voucher</th><th>Package</th><th>State</th><th>Device</th><th>Expiry</th><th></th></tr></thead>
-          <tbody id="vbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="tab-clients">
-      <div class="card">
-        <div class="toolbar">
-          <input class="input" id="clientSearch" placeholder="Search MAC, IP, voucher…">
-          <button class="small" id="refreshClients" type="button">Refresh</button>
-        </div>
-        <div style="overflow:auto">
-          <table><thead><tr><th>MAC</th><th>IP</th><th>State</th><th>Voucher</th><th>Expiry</th><th></th></tr></thead>
-          <tbody id="cbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="tab-packages">
-      <div class="card">
-        <h2 style="margin-bottom:10px">Package builder</h2>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
-          <div class="field" style="grid-column:1/-1"><label>Name</label><input class="input" id="pkg_label" placeholder="e.g. Fast Hour"></div>
-          <div class="field"><label>Down Kbps</label><input class="input" id="pkg_down" type="number" placeholder="2048"></div>
-          <div class="field"><label>Up Kbps</label><input class="input" id="pkg_up" type="number" placeholder="1024"></div>
-          <div class="field"><label>Time</label><input class="input" id="pkg_duration" type="number" placeholder="3"></div>
-          <div class="field"><label>Unit</label>
-            <select class="input" id="pkg_duration_unit"><option value="hour">Hours</option><option value="day">Days</option></select>
-          </div>
-          <div class="field" style="grid-column:1/-1"><label>Price (Rs)</label><input class="input" id="pkg_price" type="number" step="0.01" placeholder="150"></div>
-          <input type="hidden" id="pkg_id">
-          <div style="grid-column:1/-1;display:flex;gap:8px;margin-top:6px">
-            <button class="primary" id="savePkg" type="button" style="width:auto;flex:1">Save package</button>
-            <button class="small" id="resetPkg" type="button">Clear</button>
-          </div>
-        </div>
-        <div id="packageList" style="margin-top:14px"></div>
-      </div>
-    </section>
-
-    <section class="panel" id="tab-network">
-      <div class="card">
-        <h2 style="margin-bottom:10px">Wi-Fi and network</h2>
-        <div class="field"><label>Shop name</label><input class="input" id="shop"></div>
-        <div class="field"><label>SSID</label><input class="input" id="ssid"></div>
-        <div class="field"><label>Channel</label><input class="input" id="channel" inputmode="numeric"></div>
-        <div class="field"><label>Max clients</label><input class="input" id="max_sta" inputmode="numeric"></div>
-        <button class="primary" id="saveNet" type="button" style="width:auto;margin-top:6px">Save network</button>
-      </div>
-    </section>
-
-    <section class="panel" id="tab-activity">
-      <div class="card"><div id="ebody" class="muted">Loading…</div></div>
-    </section>
+<div id="gate"><section class="login"><div class="login-brand"><div class="logo"><svg viewBox="0 0 24 24" class="logo-svg" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="18.4" r="1.5" fill="currentColor" stroke="none"/><path d="M8.2 14.9a5.2 5.2 0 0 1 7.6 0"/><path d="M4.9 11.5a9.8 9.8 0 0 1 14.2 0"/></svg></div><div><div class="eyebrow">RNS Gateway</div><div style="color:var(--muted);font-size:12px;margin-top:4px">Premium hotspot control</div></div></div><h1 id="gateTitle">Staff login</h1><p class="hint" id="gateHint">Sell vouchers, manage connected devices, and keep your hotspot protected.</p><noscript><p class="hint">JavaScript is off. This staff panel is open. Turn JavaScript on to sign in.</p></noscript><div class="lab-banner hidden" id="labBanner"></div><div class="field"><label for="pass">Password</label><div class="password"><input class="input" id="pass" type="password" autocomplete="current-password"><button class="showpw" id="showpw" type="button">Show</button></div></div><label class="remember"><input id="remember" type="checkbox"> Remember this device for 30 days</label><button class="primary" id="gateBtn" type="button">Enter dashboard</button><div class="error" id="gateMsg"></div></section></div>
+<div id="app" class="hidden"><header class="top"><div class="brandline"><div class="logo"><svg viewBox="0 0 24 24" class="logo-svg" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="18.4" r="1.5" fill="currentColor" stroke="none"/><path d="M8.2 14.9a5.2 5.2 0 0 1 7.6 0"/><path d="M4.9 11.5a9.8 9.8 0 0 1 14.2 0"/></svg></div><div><strong>RNS Gateway</strong><small id="shopTitle">RNS Internet</small></div></div><h1 id="pageTitle">Sell</h1><div class="top-actions"><span class="muted" id="live">● Gate armed</span><button class="ghost" id="logout" type="button">Log out</button></div></header>
+  <div class="stats"><div class="stat"><b id="nOnline">0</b><span>Online</span></div><div class="stat"><b id="nWait">0</b><span>Waiting</span></div><div class="stat"><b id="nActive">0</b><span>Active codes</span></div><div class="stat"><b id="nNew">0</b><span>Unused</span></div></div>
+  <nav class="nav" id="nav"><div class="brandline"><div class="logo"><svg viewBox="0 0 24 24" class="logo-svg" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="18.4" r="1.5" fill="currentColor" stroke="none"/><path d="M8.2 14.9a5.2 5.2 0 0 1 7.6 0"/><path d="M4.9 11.5a9.8 9.8 0 0 1 14.2 0"/></svg></div><div><strong>RNS Gateway</strong><small id="shopTitleSide">RNS Internet</small></div></div><button class="active" data-tab="sell" data-ico="＋">Sell</button><button data-tab="payments" data-ico="₨" class="hidden" data-feature="onlinepay">Payments</button><button data-tab="codes" data-ico="#">Codes</button><button data-tab="clients" data-ico="⌂">Clients</button><button data-tab="sales" data-ico="≡">Sales</button><button data-tab="network" data-ico="◉">Network</button><button data-tab="packages" data-ico="▦">Packages</button><button data-tab="walletcfg" data-ico="₨" class="hidden" data-feature="onlinepay">Wallet setup</button><button data-tab="onlinepkg" data-ico="⇄" class="hidden" data-feature="onlinepay">Online pkgs</button><button data-tab="security" data-ico="⚿">Security</button><button data-tab="activity" data-ico="≋">Activity</button><div class="navfoot" id="liveSide">● Gate armed</div></nav>
+  <nav class="mnav" id="mnav"><button class="active" data-tab="sell" data-ico="＋">Sell</button><button data-tab="codes" data-ico="#">Codes</button><button data-tab="clients" data-ico="⌂">Clients</button><button data-tab="sales" data-ico="≡">Sales</button><button type="button" id="moreBtn" data-ico="⋯">More</button></nav>
+  <div class="sheet-overlay" id="sheetOverlay"></div>
+  <div class="sheet" id="moreSheet"><div class="sheet-handle"></div><div class="sheet-title">More</div><button data-tab="payments" data-ico="₨" class="hidden" data-feature="onlinepay">Payments</button><button data-tab="network" data-ico="◉">Network</button><button data-tab="packages" data-ico="▦">Packages</button><button data-tab="walletcfg" data-ico="₨" class="hidden" data-feature="onlinepay">Wallet setup</button><button data-tab="onlinepkg" data-ico="⇄" class="hidden" data-feature="onlinepay">Online pkgs</button><button data-tab="security" data-ico="⚿">Security</button><button data-tab="activity" data-ico="≋">Activity</button></div>
+  <main id="workspace">
+    <section class="panel active" id="tab-sell"><div class="glass"><div class="section-head"><div><h2>Sell access</h2><p>Choose a package and generate a secure voucher.</p></div><div class="eyebrow">One code · one device</div></div><div class="plans" id="plans"><div class="empty">Loading packages…</div></div><div class="sell-tools"><label style="margin:0;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0">Quantity</label><input class="input count" id="count" type="number" min="1" max="100" value="1"><input class="input" id="mintNote" placeholder="Optional note or price" style="max-width:240px"><span class="muted" style="font-size:12px">Up to 100 at once</span></div><div class="ticket" id="ticket"><div class="eyebrow">New voucher</div><div class="code" id="bigCode">—</div><div class="meta" id="ticketMeta"></div><div class="more" id="moreCodes"></div><div class="actions" style="margin-top:12px"><button class="small" id="copyCode" type="button">Copy codes</button><button class="small" id="printCode" type="button">Print slip</button><button class="small" id="pdfUnused" type="button">⬇ PDF of these vouchers</button></div></div></div></section>
+    <section class="panel" id="tab-payments"><div class="glass"><div class="section-head"><div><h2>Online payments</h2><p>Verify JazzCash / EasyPaisa TIDs submitted by customers. Confirm to activate their internet instantly.</p></div><button class="small" id="refreshPayments" type="button">Refresh</button></div><div class="toolbar"><button class="filter active" data-payfilter="all">All</button><button class="filter" data-payfilter="pending">Pending</button><button class="filter" data-payfilter="confirmed">Confirmed</button><button class="filter" data-payfilter="rejected">Rejected</button></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>Customer</th><th>Package</th><th>Method</th><th>TID</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody id="pbody"></tbody></table></div></div></section>
+    <section class="panel" id="tab-codes"><div class="glass"><div class="section-head"><div><h2>Voucher codes</h2><p>Search, filter, unbind or revoke codes. Redeemed and expired codes are kept permanently for audit.</p></div><button class="small" id="refreshCodes" type="button">Refresh</button></div><div class="toolbar"><input class="input" id="codeSearch" placeholder="Search code, plan, MAC…"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="new">Unused</button><button class="filter" data-filter="active">Active</button><button class="filter" data-filter="expired">Expired</button><button class="filter" data-filter="revoked">Revoked</button><button class="small" id="pdfCodes" type="button" title="PDF of the vouchers in the current filter: logo, code, package, start and end date/time">⬇ PDF</button></div><div class="table-wrap"><table><thead><tr><th>Voucher</th><th>Package</th><th>State</th><th>Device</th><th>Expiry</th><th></th></tr></thead><tbody id="vbody"></tbody></table></div></div></section>
+    <section class="panel" id="tab-clients"><div class="glass"><div class="section-head"><div><h2>Connected clients</h2><p>Control every device on your hotspot.</p></div><button class="small" id="refreshClients" type="button">Refresh</button></div><div class="toolbar"><input class="input" id="clientSearch" placeholder="Search name, MAC, IP, voucher…"><button class="filter active" data-cfilter="all">All</button><button class="filter" data-cfilter="active">Online</button><button class="filter" data-cfilter="waiting">Waiting</button><button class="filter" data-cfilter="kicked">Kicked</button><button class="filter" data-cfilter="banned">Banned</button></div><div class="table-wrap"><table><thead><tr><th>Device</th><th>MAC</th><th>IP</th><th>State</th><th>Voucher</th><th>Expiry</th><th></th></tr></thead><tbody id="cbody"><tr><td class="empty" colspan="7">Loading…</td></tr></tbody></table></div></div></section>
+    <section class="panel" id="tab-sales"><div class="glass"><div class="section-head"><div><h2>Sales report</h2><p>Codes you generated and codes customers redeemed, with rupee totals for any date range.</p></div><button class="small" id="exportCsv" type="button">Export CSV</button></div><div class="toolbar"><label class="muted" style="font-size:12px" for="salesFrom">From</label><input class="input" id="salesFrom" type="date" style="max-width:170px"><label class="muted" style="font-size:12px" for="salesTo">To</label><input class="input" id="salesTo" type="date" style="max-width:170px"><button class="small" id="salesGo" type="button">Apply</button></div><div class="toolbar" id="salesQuick"><button class="qrange" data-range="today" type="button">Today</button><button class="qrange" data-range="yesterday" type="button">Yesterday</button><button class="qrange active" data-range="7" type="button">Last 7 days</button><button class="qrange" data-range="30" type="button">Last 30 days</button><button class="qrange" data-range="month" type="button">This month</button></div><div class="stats"><div class="stat"><b id="sGen">0</b><span>Codes generated</span></div><div class="stat"><b id="sGenRs">0</b><span>Generated rupees</span></div><div class="stat"><b id="sRed">0</b><span>Codes redeemed</span></div><div class="stat"><b id="sRedRs">0</b><span>Redeemed rupees</span></div></div><p class="sales-note" id="salesNote"></p><div class="sub-head">By day</div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Generated</th><th>Redeemed</th><th>Generated Rs</th><th>Redeemed Rs</th></tr></thead><tbody id="sdaybody"></tbody></table></div><div class="sub-head">By package</div><div class="table-wrap"><table><thead><tr><th>Package</th><th>Generated</th><th>Redeemed</th><th>Generated Rs</th><th>Redeemed Rs</th></tr></thead><tbody id="spkgbody"></tbody></table></div></div></section>
+<section class="panel" id="tab-network"><div class="glass settings-block"><h3>Wi-Fi and network</h3><div class="field"><label>Shop name</label><input class="input" id="shop"></div><div class="field"><label>SSID</label><input class="input" id="ssid"></div><div class="field"><label>Channel</label><input class="input" id="channel" inputmode="numeric"></div><div class="field"><label>Maximum clients</label><input class="input" id="max_sta" inputmode="numeric"></div><div class="settings-actions"><button class="primary" id="save" type="button">Save network</button><button class="danger" id="pause" type="button">Pause gate</button></div></div></section><section class="panel" id="tab-packages"><div class="glass settings-block"><h3>Package builder</h3><p class="muted" style="font-size:12px;margin-top:-5px">Nothing is preset. Build every package you sell here, then it appears on the Sell tab.</p><div class="package-form"><div class="field wide"><label for="pkg_label">Name</label><input class="input" id="pkg_label" placeholder="e.g. Fast Hour"></div><div class="field"><label for="pkg_down">Speed DL (Kbps)</label><input class="input" id="pkg_down" type="number" min="1" inputmode="numeric" placeholder="2048"></div><div class="field"><label for="pkg_up">Speed UL (Kbps)</label><input class="input" id="pkg_up" type="number" min="1" inputmode="numeric" placeholder="1024"></div><div class="field"><label for="pkg_duration">Time</label><input class="input" id="pkg_duration" type="number" min="1" inputmode="numeric" placeholder="3"></div><div class="field"><label for="pkg_duration_unit">Time unit</label><select class="input" id="pkg_duration_unit"><option value="hour">Hours</option><option value="day">Days</option></select></div><div class="field"><label for="pkg_rate">Price</label><input class="input" id="pkg_rate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="50"></div><div class="field"><label for="pkg_rate_unit">Price unit</label><select class="input" id="pkg_rate_unit"><option value="hour">per hour</option><option value="day">per day</option></select></div><div class="field wide"><label for="pkg_price">Total price (Rs)</label><input class="input" id="pkg_price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="150"><p class="muted" id="pkg_hint" style="font-size:11px;margin:6px 0 0">Type the time and the price and the total fills in itself. You can still change the total before saving.</p></div><input type="hidden" id="pkg_id"><div class="wide settings-actions"><button class="primary" id="savePkg" type="button">Save package</button><button class="ghost" id="resetPkg" type="button">Clear form</button></div></div><div class="package-list" id="packageList"></div></div></section><section class="panel" id="tab-walletcfg"><div class="glass settings-block hidden" data-feature="onlinepay"><h3>Payment gateway</h3><p class="muted" style="font-size:12px;margin-top:-5px">Customers pay via JazzCash / EasyPaisa and submit their TID. Add your wallet numbers below to enable online payments on the captive portal.</p><div class="field"><label>JazzCash number</label><input class="input" id="jazzcash_number" placeholder="03XX-XXXXXXX"></div><div class="field"><label>JazzCash account name</label><input class="input" id="jazzcash_name" placeholder="e.g. Muhammad Ali"></div><div class="field"><label>EasyPaisa number</label><input class="input" id="easypaisa_number" placeholder="03XX-XXXXXXX"></div><div class="field"><label>EasyPaisa account name</label><input class="input" id="easypaisa_name" placeholder="e.g. Muhammad Ali"></div><div class="field"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text)"><input type="checkbox" id="pay_auto_verify" style="accent-color:var(--aqua);width:18px;height:18px"> Auto-verify payments (TID + amount match → instant activation)</label><p class="muted" style="font-size:11px;margin:4px 0 0 28px">When ON: customer enters TID, system validates format and activates instantly. When OFF: every payment waits for staff confirmation.</p></div><div class="settings-actions"><button class="primary" id="savePay" type="button">Save payment settings</button></div></div></section><section class="panel" id="tab-onlinepkg"><div class="glass settings-block hidden" data-feature="onlinepay" style="grid-column:1/-1"><h3>Online packages</h3><p class="muted" style="font-size:12px;margin-top:-5px">These are the packages customers see on the captive portal's Buy Online section. Completely separate from counter packages — set their own names, speeds, durations and prices.</p><div class="package-form"><div class="field wide"><label for="opkg_label">Package name</label><input class="input" id="opkg_label" placeholder="e.g. Student Hour"></div><div class="field"><label for="opkg_down">Speed DL (Kbps)</label><input class="input" id="opkg_down" type="number" min="1" inputmode="numeric" placeholder="2048"></div><div class="field"><label for="opkg_up">Speed UL (Kbps)</label><input class="input" id="opkg_up" type="number" min="1" inputmode="numeric" placeholder="1024"></div><div class="field"><label for="opkg_duration">Time</label><input class="input" id="opkg_duration" type="number" min="1" inputmode="numeric" placeholder="1"></div><div class="field"><label for="opkg_duration_unit">Time unit</label><select class="input" id="opkg_duration_unit"><option value="hour">Hours</option><option value="day">Days</option></select></div><div class="field"><label for="opkg_rate">Price</label><input class="input" id="opkg_rate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="50"></div><div class="field"><label for="opkg_rate_unit">Price unit</label><select class="input" id="opkg_rate_unit"><option value="hour">per hour</option><option value="day">per day</option></select></div><div class="field wide"><label for="opkg_price">Total price (Rs)</label><input class="input" id="opkg_price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="50"><p class="muted" style="font-size:11px;margin:6px 0 0">This is what the customer pays online. Edit freely — the stored price is authoritative.</p></div><input type="hidden" id="opkg_id"><div class="wide settings-actions"><button class="primary" id="saveOPkg" type="button">Save online package</button><button class="ghost" id="resetOPkg" type="button">Clear form</button></div></div><div class="package-list" id="onlinePackageList"></div></div></section><section class="panel" id="tab-security"><div class="glass settings-block"><h3>Admin security</h3><div class="field"><label>Current password</label><input class="input" id="oldp" type="password"></div><div class="field"><label>New password</label><input class="input" id="newp" type="password"></div><div class="actions"><button class="ghost" id="chpass" type="button">Update password</button><button class="ghost" id="backup" type="button">Backup data</button></div><p class="muted" id="setMsg" style="font-size:12px"></p></div>
+<div class="glass settings-block"><h3>Forgot the staff password?</h3><p class="muted" style="font-size:13px">There's no in-app reset — a stranger with the phone can't lock you out or reset it themselves. To recover it, run this from a root shell on the router (serial console or <span class="mono">rns-ctl ssh on</span>):</p><p class="mono" style="font-size:12.5px;background:#071420;border:1px solid var(--line);border-radius:10px;padding:10px 12px;word-break:break-all;margin:8px 0">sh /usr/share/rns/bin/rns-ctl.sh setpass NEWPASS</p><p class="muted" style="font-size:12px">Replace NEWPASS with the password you want, then sign in with it here.</p></div>
+<div class="glass settings-block"><h3>Where your data lives</h3><p class="muted" style="font-size:13px">Every voucher, client, package and sale is kept as plain .tsv files on the router, not inside this browser:</p><p class="mono" style="font-size:12.5px;background:#071420;border:1px solid var(--line);border-radius:10px;padding:10px 12px;word-break:break-all;margin:8px 0">/data/rns/database/</p><p class="muted" style="font-size:12px">(vouchers.tsv, clients.tsv, packages.tsv, online-packages.tsv, payments.tsv and settings live in that folder.) The <b>Backup data</b> button above copies a dated snapshot to <span class="mono">/data/rns/backups/</span>.</p></div>
+<div class="glass settings-block"><h3>Wipe everything and start fresh</h3><p class="muted" style="font-size:13px">This is deliberately not a button in the app — a wrong tap here would erase every voucher and sale with no undo. To erase all data:</p><ol class="muted" style="font-size:13px;padding-left:18px;margin:8px 0">
+<li>Boot the router to a root shell</li>
+<li>Create an empty purge marker: <span class="mono">touch /data/rns/PURGE</span></li>
+<li>Reboot — vouchers, clients and settings are deleted, and you'll set a new password on next open</li>
+</ol><p class="muted" style="font-size:12px">Skip step 2 and your history is kept, so the old vouchers, clients and password come back on the next boot.</p></div>
+</section><section class="panel" id="tab-activity"><div class="glass settings-block"><h3>Activity log</h3><div class="activity" id="ebody"></div></div></section>
   </main>
-</div>
-
-<div class="toast" id="toast"></div>
-
+</div><div class="toast" id="toast"></div>
 <script>
 (function(){
-  var tab='sell',packages=[],lastCodes=[];
+  var filter='all',lastCodes=[],tab='sell',packages=[];
   function $(id){return document.getElementById(id)}
+  // Stacked table rows on phones: copy each column heading onto its cells.
+  function labelCells(tb){var t=tb.closest('table');if(!t)return;var hs=[].map.call(t.querySelectorAll('thead th'),function(h){return h.textContent.trim()});[].forEach.call(tb.rows,function(r){[].forEach.call(r.cells,function(c,i){if(c.colSpan>1){c.classList.add('empty');return}if(!c.hasAttribute('data-l'))c.setAttribute('data-l',hs[i]||'')})})}
+  if(window.MutationObserver){[].forEach.call(document.querySelectorAll('tbody'),function(tb){new MutationObserver(function(){labelCells(tb)}).observe(tb,{childList:true})})}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
-  function api(path,data){
-    var opt={headers:{Accept:'application/json'},credentials:'same-origin'};
-    if(data){opt.method='POST';opt.headers['Content-Type']='application/x-www-form-urlencoded';opt.body=new URLSearchParams(data).toString()}
-    return fetch(path,opt).then(function(r){return r.json().then(function(j){j._status=r.status;return j})});
-  }
+  function api(path,data){var opt={headers:{Accept:'application/json'},credentials:'same-origin'};if(data){opt.method='POST';opt.headers['Content-Type']='application/x-www-form-urlencoded';opt.body=new URLSearchParams(data).toString()}return fetch(path,opt).then(function(r){return r.json().then(function(j){j._status=r.status;return j})})}
   function toast(t){$('toast').textContent=t;$('toast').classList.add('on');setTimeout(function(){$('toast').classList.remove('on')},2600)}
-  function when(e){e=Number(e)||0;if(!e)return '—';var d=new Date(e*1000);return d.toLocaleDateString([],{day:'numeric',month:'short'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+  function left(sec){sec=Number(sec)||0;if(sec<=0)return '';var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h>=48?Math.floor(h/24)+'d '+(h%24)+'h':h?h+'h '+m+'m':m+'m'}
+  function when(epoch){epoch=Number(epoch)||0;if(!epoch)return '';var d=new Date(epoch*1000);return d.toLocaleDateString([],{day:'numeric',month:'short'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
   function speed(k){return Number(k)>=1024?(Math.round(Number(k)/102.4)/10)+' Mbps':(k||0)+' Kbps'}
-  function dur(sec){sec=Number(sec)||0;if(sec<=0)return '—';if(sec%86400===0)return (sec/86400)+'d';if(sec%3600===0)return (sec/3600)+'h';return Math.round(sec/60)+'m'}
-  function left(sec){sec=Number(sec)||0;if(sec<=0)return '';var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h?h+'h '+m+'m':m+'m'}
 
-  function showGate(setup){
-    $('app').style.display='none';
-    $('gate').classList.remove('hidden');
-    $('gateTitle').textContent=setup?'Create staff password':'Staff login';
-    $('gateHint').textContent=setup?'First launch: choose a password only you know.':'Sign in to control the hotspot.';
-    $('gateBtn').textContent=setup?'Create password':'Enter dashboard';
-    $('gateBtn').dataset.setup=setup?'1':'0';
+  function pad2(n){n=String(n);return n.length<2?'0'+n:n}
+  function iso(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
+  function calcPrice(){
+    var n=Number($('pkg_duration').value)||0,du=$('pkg_duration_unit').value;
+    var rate=Number($('pkg_rate').value)||0,ru=$('pkg_rate_unit').value;
+    if(n<=0||rate<=0){$('pkg_hint').textContent='Type the time and the price and the total fills in itself. You can still change the total before saving.';return}
+    var sec=(du==='day')?n*86400:n*3600;
+    var per=(ru==='day')?86400:3600;
+    var total=Math.round(rate*sec/per*100)/100;
+    $('pkg_price').value=total;
+    $('pkg_hint').textContent='Rs '+rate+' '+(ru==='day'?'per day':'per hour')+' \u00d7 '+n+' '+du+' = Rs '+total+'. Change the total if you want a different price.';
   }
-  function showApp(){
-    $('gate').classList.add('hidden');
-    $('app').style.display='block';
-    refresh();loadPackages();loadSettings();
+  function pkgForm(){return ['pkg_label','pkg_down','pkg_up','pkg_duration','pkg_rate','pkg_price','pkg_id']}
+  function clearPkg(){pkgForm().forEach(function(id){$(id).value=''});$('pkg_duration_unit').value='hour';$('pkg_rate_unit').value='hour';calcPrice();$('savePkg').textContent='Save package'}
+  function editPkg(id){
+    var p=packages.filter(function(x){return x.id===id})[0];if(!p)return;
+    var sec=Number(p.seconds)||0,du=(sec%86400===0&&sec>=86400)?'day':'hour';
+    $('pkg_id').value=p.id;$('pkg_label').value=p.label;
+    $('pkg_down').value=p.down_kbps;$('pkg_up').value=p.up_kbps;
+    $('pkg_duration').value=(du==='day')?sec/86400:sec/3600;
+    $('pkg_duration_unit').value=du;
+    $('pkg_rate').value=p.rate||'';$('pkg_rate_unit').value=p.rate_unit||'hour';
+    $('pkg_price').value=p.price||'';
+    $('pkg_hint').textContent='Editing "'+p.label+'". Saving replaces it.';
+    $('savePkg').textContent='Update package';
+    go('packages');
   }
-  function go(name){
-    tab=name;
-    document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name)});
-    document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('active',p.id==='tab-'+name)});
-    if(name==='codes')loadCodes();
-    if(name==='clients')loadClients();
-    if(name==='packages')loadPackages();
-    if(name==='activity')loadEvents();
-    if(name==='network')loadSettings();
+  function delPkg(id){
+    var p=packages.filter(function(x){return x.id===id})[0];
+    if(!window.confirm('Delete package "'+(p?p.label:id)+'"? Codes already sold keep working.'))return;
+    api('/api/admin/packages',{action:'delete',id:id}).then(function(j){
+      if(!j.ok)return toast(j.error||'Could not delete package');
+      toast('Package deleted');loadPackages();
+    });
   }
-  function refresh(){api('/api/admin/overview').then(function(j){
-    if(j._status===401)return showGate(false);
-    var c=j.counts||{};
-    $('nOnline').textContent=c.online||0;
-    $('nWait').textContent=c.waiting||0;
-    $('nActive').textContent=c.active||0;
-    $('nNew').textContent=c.unused||0;
-  }).catch(function(){})}
-
-  function loadPackages(){api('/api/admin/packages').then(function(j){
-    packages=j.packages||[];
-    var html=packages.map(function(p){
-      return '<button class="plan" data-plan="'+esc(p.id)+'"><b>'+esc(p.label)+'</b><small>'+speed(p.down_kbps)+' / '+speed(p.up_kbps)+'<br>'+dur(p.seconds)+'</small>'+(p.price?'<em>Rs '+esc(p.price)+'</em>':'')+'</button>';
+  function salesQuery(){
+    var f=$('salesFrom').value,t=$('salesTo').value;
+    return '?from='+encodeURIComponent(f||'')+'&to='+encodeURIComponent(t||'');
+  }
+  function salesRows(rows,keyName){
+    if(!rows||!rows.length)return '<tr><td colspan="5" class="empty">Nothing sold in this range</td></tr>';
+    return rows.map(function(r){
+      return '<tr><td class="mono">'+esc(r[keyName])+'</td><td>'+(r.minted||0)+'</td><td>'+(r.redeemed||0)+'</td>'
+        +'<td class="mono">'+esc(r.revenue||'0.00')+'</td><td class="mono">'+esc(r.redeemed_revenue||'0.00')+'</td></tr>';
     }).join('');
-    $('plans').innerHTML=html||'<div class="empty">No packages yet — build one in the Packages tab.</div>';
-    $('packageList').innerHTML=packages.map(function(p){
-      return '<div style="display:flex;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px;font-size:12px"><span><b>'+esc(p.label)+'</b><br><span class="muted">'+dur(p.seconds)+' · '+speed(p.down_kbps)+'/'+speed(p.up_kbps)+'</span></span><span><b>'+(p.price?'Rs '+esc(p.price):'—')+'</b> <button class="small" data-del="'+esc(p.id)+'">Delete</button></span></div>';
-    }).join('');
-    document.querySelectorAll('.plan').forEach(function(b){b.addEventListener('click',function(){mint(b.dataset.plan)})});
-    document.querySelectorAll('[data-del]').forEach(function(b){b.addEventListener('click',function(){
-      if(!confirm('Delete package?'))return;
-      api('/api/admin/packages',{action:'delete',id:b.dataset.del}).then(function(j){toast(j.ok?'Deleted':'Failed');loadPackages()});
-    })});
-  })}
-
-  function mint(plan){
-    var n=Math.max(1,Math.min(100,Number($('count').value)||1));
-    api('/api/admin/mint',{plan:plan,count:n,note:$('mintNote').value}).then(function(j){
-      if(!j.ok)return toast(j.error||'Could not generate');
-      lastCodes=j.codes||[];
-      $('bigCode').textContent=lastCodes[0]||'';
-      $('moreCodes').textContent=lastCodes.length>1?lastCodes.join('  '):'';
-      var p=packages.filter(function(x){return x.id===plan})[0];
-      $('ticketMeta').textContent=(p?p.label:plan)+' · '+lastCodes.length+' generated';
-      $('ticket').classList.add('show');
-      toast('Voucher generated');refresh();
-    });
   }
-
-  function loadCodes(){
-    var url='/api/admin/vouchers?status=all&search='+encodeURIComponent($('codeSearch').value||'');
-    api(url).then(function(j){
-      var rows=j.vouchers||[];
-      $('vbody').innerHTML=rows.map(function(v){
-        var acts='';
-        if(v.status==='active')acts+='<button class="small" data-act="unbind" data-code="'+esc(v.code)+'">Unbind</button> ';
-        if(v.status!=='revoked')acts+='<button class="small danger" data-act="revoke" data-code="'+esc(v.code)+'">Revoke</button>';
-        return '<tr><td class="mono">'+esc(v.display||v.code)+'</td><td>'+esc(v.plan)+'<br><span class="muted">'+speed(v.down_kbps)+'/'+speed(v.up_kbps)+'</span></td><td><span class="pill '+esc(v.status)+'">'+esc(v.status)+'</span></td><td class="mono">'+esc(v.mac||'—')+'</td><td>'+(v.expires?esc(when(v.expires)):'—')+'</td><td>'+acts+'</td></tr>';
-      }).join('')||'<tr><td colspan="6" class="empty">No vouchers</td></tr>';
-    });
+  function loadSales(){
+    api('/api/admin/sales'+salesQuery()).then(function(j){
+      if(j._status===401)return showGate(false);
+      var s=j.sales||{},t=s.totals||{};
+      $('sGen').textContent=t.minted||0;
+      $('sGenRs').textContent=t.minted_revenue||'0.00';
+      $('sRed').textContent=t.redeemed||0;
+      $('sRedRs').textContent=t.redeemed_revenue||'0.00';
+      var notes=[];
+      if(t.unpriced>0)notes.push(t.unpriced+' code'+(t.unpriced===1?'':'s')+' have no price, so the rupee total is understated.');
+      if(t.undated>0)notes.push(t.undated+' older code'+(t.undated===1?'':'s')+' have no sale date and are left out of the counts.');
+      $('salesNote').textContent=notes.join(' ');
+      var days=(s.by_day||[]).slice().reverse();
+      $('sdaybody').innerHTML=salesRows(days,'day');
+      $('spkgbody').innerHTML=salesRows(s.by_package||[],'label');
+    }).catch(function(){toast('Could not load the sales report')});
   }
-
-  function loadClients(){
-    api('/api/admin/clients').then(function(j){
-      var rows=j.clients||[];
-      var q=($('clientSearch').value||'').toLowerCase();
-      rows=rows.filter(function(c){return !q||[c.mac,c.ip,c.voucher,c.plan].some(function(v){return String(v||'').toLowerCase().indexOf(q)>-1})});
-      $('cbody').innerHTML=rows.map(function(c){
-        var acts='';
-        if(c.state==='banned')acts='<button class="small" data-state="active">Unban</button>';
-        else if(c.state==='kicked')acts='<button class="small" data-state="active">Unkick</button>';
-        else acts='<button class="small" data-state="kicked">Kick</button> <button class="small danger" data-state="banned">Ban</button>';
-        return '<tr><td class="mono">'+esc(c.mac)+'</td><td>'+esc(c.ip||'—')+'</td><td><span class="pill '+esc(c.state)+'">'+esc(c.state)+'</span></td><td class="mono">'+esc(c.voucher||'—')+'</td><td>'+(c.expires?esc(when(c.expires)):'—')+'</td><td>'+acts+'</td></tr>';
-      }).join('')||'<tr><td colspan="6" class="empty">No clients</td></tr>';
-      document.querySelectorAll('#cbody button[data-state]').forEach(function(b){
-        b.addEventListener('click',function(){
-          var mac=b.closest('tr').querySelector('.mono').textContent;
-          var st=b.dataset.state;
-          if(st==='banned'&&!confirm('Ban this device?'))return;
-          api('/api/admin/client-status',{mac:mac,state:st}).then(function(j){toast(j.ok?'Updated':(j.error||'Failed'));loadClients()});
-        });
-      });
-    });
+  function defaultSalesRange(){var d=new Date();$('salesTo').value=iso(d);$('salesFrom').value=iso(new Date(d.getTime()-6*86400000))}
+  function setRange(kind,btn){
+    var d=new Date(),f,t;
+    if(kind==='today'){f=iso(d);t=iso(d)}
+    else if(kind==='yesterday'){var y=new Date(d.getTime()-86400000);f=iso(y);t=iso(y)}
+    else if(kind==='month'){f=iso(new Date(d.getFullYear(),d.getMonth(),1));t=iso(d)}
+    else{var n=Number(kind)||7;f=iso(new Date(d.getTime()-(n-1)*86400000));t=iso(d)}
+    $('salesFrom').value=f;$('salesTo').value=t;
+    document.querySelectorAll('#salesQuick .qrange').forEach(function(b){b.classList.toggle('active',b===btn)});
+    loadSales();
   }
-
-  function loadEvents(){
-    api('/api/admin/events').then(function(j){
-      $('ebody').innerHTML=(j.events||[]).slice().reverse().map(function(e){
-        return '<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:12px"><span class="muted">'+new Date((e.t||0)*1000).toLocaleString()+'</span> <b>'+esc(e.action)+'</b><br>'+esc(e.detail)+'</div>';
-      }).join('')||'<div class="muted">No events yet.</div>';
-    });
+  function exportCsv(){
+    fetch('/api/admin/sales.csv'+salesQuery(),{credentials:'same-origin'}).then(function(r){
+      if(!r.ok)throw new Error('http '+r.status);
+      return r.blob();
+    }).then(function(b){
+      var u=URL.createObjectURL(b),a=document.createElement('a');
+      a.href=u;a.download='rns-sales.csv';document.body.appendChild(a);a.click();
+      setTimeout(function(){URL.revokeObjectURL(u);if(a.parentNode)a.parentNode.removeChild(a)},500);
+      toast('CSV exported');
+    }).catch(function(){toast('Export failed')});
   }
-
-  function loadSettings(){
-    api('/api/admin/settings').then(function(s){
-      ['shop','ssid','channel','max_sta'].forEach(function(id){if($(id)&&s[id]!=null)$(id).value=s[id]});
-      $('shopTitle').textContent=s.shop||'RNS Internet';
+  function showGate(setup){$('app').classList.add('hidden');$('gate').classList.remove('hidden');$('gateTitle').textContent=setup?'Create staff password':'Staff login';$('gateHint').textContent=setup?'First launch: create a password only the shop operator knows.':'Sell vouchers, manage connected devices, and keep your hotspot protected.';$('gateBtn').textContent=setup?'Create password':'Enter dashboard';$('gateBtn').dataset.setup=setup?'1':'0'}
+  function showApp(){$('gate').classList.add('hidden');$('app').classList.remove('hidden');defaultSalesRange();refresh();loadPackages();loadSettings()}
+  function go(name){tab=name;var nb=document.querySelector('[data-tab="'+name+'"]');if(nb){$('pageTitle').textContent=nb.textContent;$('pageTitle').classList.remove('hidden')}document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name)});$('moreBtn').classList.toggle('active',['payments','network','packages','walletcfg','onlinepkg','security','activity'].indexOf(name)>-1);closeSheet();document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('active',p.id==='tab-'+name)});if(name==='codes')loadCodes();if(name==='clients')loadClients();if(name==='sales')loadSales();if(name==='payments')loadPayments();if(name==='network'||name==='security')loadSettings();if(name==='packages')loadPackages();if(name==='walletcfg')loadSettings();if(name==='onlinepkg')loadOnlinePackages();if(name==='activity')loadSettings()}
+  function refresh(){api('/api/admin/overview').then(function(j){if(j._status===401)return showGate(false);var c=j.counts||{};$('nOnline').textContent=c.online||0;$('nWait').textContent=c.waiting||0;$('nActive').textContent=c.active||0;$('nNew').textContent=c.unused||0}).catch(function(){})}
+  function dur(sec){sec=Number(sec)||0;if(sec<=0)return '—';if(sec%86400===0){var d=sec/86400;return d+' day'+(d===1?'':'s')}if(sec%3600===0){var h=sec/3600;return h+' hour'+(h===1?'':'s')}var m=Math.max(1,Math.round(sec/60));return m+' min'}
+  function rateText(p){if(!p.rate)return '';return 'Rs '+esc(p.rate)+' '+(p.rate_unit==='day'?'per day':'per hour')}
+  function loadPackages(){api('/api/admin/packages').then(function(j){packages=j.packages||[];var html=packages.map(function(p){return '<button class="plan" data-plan="'+esc(p.id)+'"><b>'+esc(p.label)+'</b><small>'+speed(p.down_kbps)+' down · '+speed(p.up_kbps)+' up<br>'+dur(p.seconds)+'</small>'+(p.price?'<em>Rs '+esc(p.price)+'</em>':'')+'</button>'}).join('');$('plans').innerHTML=html||'<div class="empty">No packages yet. Build your first one in Settings → Package builder.</div>';$('packageList').innerHTML=packages.map(function(p){return '<div class="package-row"><span><b>'+esc(p.label)+'</b><br><small>'+dur(p.seconds)+' · '+speed(p.down_kbps)+' / '+speed(p.up_kbps)+(p.rate?' · '+rateText(p):'')+'</small></span><span class="row-actions"><b>'+(p.price?'Rs '+esc(p.price):'—')+'</b><button class="small" type="button" data-edit="'+esc(p.id)+'">Edit</button><button class="small danger" type="button" data-del="'+esc(p.id)+'">Delete</button></span></div>'}).join('')||'<div class="empty">No packages yet.</div>';document.querySelectorAll('.plan').forEach(function(b){b.addEventListener('click',function(){mint(b.dataset.plan)})});document.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){editPkg(b.dataset.edit)})});document.querySelectorAll('[data-del]').forEach(function(b){b.addEventListener('click',function(){delPkg(b.dataset.del)})})}).catch(function(){})}
+  function mint(plan){var n=Math.max(1,Math.min(100,Number($('count').value)||1));api('/api/admin/mint',{plan:plan,count:n,note:$('mintNote').value}).then(function(j){if(!j.ok)return toast(j.error||'Could not generate voucher');lastCodes=j.codes||[];$('bigCode').textContent=lastCodes[0]||'';$('moreCodes').textContent=lastCodes.length>1?lastCodes.join('  '):'';var p=packages.filter(function(x){return x.id===plan})[0];$('ticketMeta').textContent=(p?p.label:plan)+' · '+lastCodes.length+' generated';$('ticket').classList.add('show');toast('Voucher generated');refresh()})}
+  function loadCodes(){var url='/api/admin/vouchers?status='+encodeURIComponent(filter)+'&search='+encodeURIComponent($('codeSearch').value||'');api(url).then(function(j){var rows=j.vouchers||[];$('vbody').innerHTML=rows.map(function(v){var actions=(v.status==='active'?'<button class="small" data-act="unbind" data-code="'+esc(v.code)+'">Unbind</button> ':'')+(v.status!=='revoked'?'<button class="small" data-act="revoke" data-code="'+esc(v.code)+'">Revoke</button> ':'')+((v.status==='new'||v.status==='revoked')?'<button class="small" data-act="delete" data-code="'+esc(v.code)+'">Delete</button>':'');return '<tr><td class="mono">'+esc(v.display)+'</td><td>'+esc(v.plan)+'<br><span class="muted">'+speed(v.down_kbps)+' / '+speed(v.up_kbps)+'</span></td><td><span class="pill '+esc(v.status)+'">'+esc(v.status)+'</span></td><td class="mono">'+esc(v.mac||'—')+'</td><td>'+(v.status==='active'&&v.expires?esc(left(v.left)||'ending')+'<br><span class="muted">till '+esc(when(v.expires))+'</span>':v.expires?'expired<br><span class="muted">'+esc(when(v.expires))+'</span>':'—')+'</td><td><div class="actions">'+actions+'</div></td></tr>'}).join('')||'<tr><td colspan="6" class="empty">No vouchers match this search.</td></tr>'})}
+  var clientFilter='all',clientRows=[];
+  function loadClients(){api('/api/admin/clients').then(function(j){clientRows=j.clients||[];renderClients()})}
+  function renderClients(){
+    var q=($('clientSearch').value||'').trim().toLowerCase();
+    var rows=clientRows.filter(function(c){
+      if(clientFilter!=='all'&&c.state!==clientFilter)return false;
+      if(!q)return true;
+      return [c.name,c.host,c.mac,c.ip,c.voucher,c.plan].some(function(v){return String(v==null?'':v).toLowerCase().indexOf(q)>-1});
     });
+    $('cbody').innerHTML=rows.map(function(c){
+      var action=c.state==='banned'?'<button class="small" data-state="active">Unban</button>':c.state==='kicked'?'<button class="small" data-state="active" title="Put the device back online on its current voucher.">Unkick</button> <button class="small danger" data-state="banned">Ban</button>':'<button class="small" data-state="kicked" title="Pause this device now (its voucher clock keeps running). Unkick restores it; a new code also works.">Kick</button> <button class="small danger" data-state="banned" title="Block this device until you Unban it.">Ban</button>';
+      return '<tr data-mac="'+esc(c.mac)+'">'
+        +'<td data-l="Device">'+esc(c.name||c.host||'Device')+'</td>'
+        +'<td data-l="MAC" class="mono">'+esc(c.mac)+'</td>'
+        +'<td data-l="IP">'+esc(c.ip||'—')+'</td>'
+        +'<td data-l="State"><span class="pill '+esc(c.state)+'">'+esc(c.state)+'</span></td>'
+        +'<td data-l="Voucher" class="mono">'+esc(c.voucher||'—')+' <span class="muted">'+esc(c.plan||'')+'</span></td>'
+        +'<td data-l="Expiry">'+(c.expires&&c.state==='active'?esc(when(c.expires)):'—')+'</td>'
+        +'<td data-l="" class="row-actions">'+action+'</td></tr>';
+    }).join('')||'<tr><td class="empty" colspan="7">No devices match.</td></tr>';
   }
-
-  $('gateBtn').addEventListener('click',function(){
-    var setup=this.dataset.setup==='1';
-    var path=setup?'/api/setup':'/api/login';
-    api(path,{password:$('pass').value,remember:$('remember').checked?'1':'0'}).then(function(j){
-      if(!j.ok){$('gateMsg').textContent=j.error||'Could not sign in';return}
-      $('gateMsg').textContent='';showApp();
-    });
+  var payFilter='all';
+  function loadPayments(){api('/api/admin/payments').then(function(j){window._payRows=j.payments||[];var rows=(j.payments||[]).filter(function(p){return payFilter==='all'||p.status===payFilter});$('pbody').innerHTML=rows.map(function(p){var t=p.created?new Date(p.created*1000).toLocaleString():'—';var methodLabel=p.method==='jazzcash'?'JazzCash':p.method==='easypaisa'?'EasyPaisa':esc(p.method||'');var actions='';if(p.status==='pending'){actions='<button class="small" data-payact="confirm" data-payid="'+esc(p.pay_id)+'" style="color:var(--green)">Confirm</button> <button class="small danger" data-payact="reject" data-payid="'+esc(p.pay_id)+'">Reject</button>';} else if(p.status==='confirmed'&&p.voucher_code){actions='<span class="mono" style="font-size:11px">'+esc(p.voucher_code)+'</span>';} else if(p.status==='rejected'){actions='<span class="muted" style="font-size:11px">'+(p.note?esc(p.note):'Rejected')+'</span>';}return '<tr><td>'+t+'</td><td><span class="mono" style="font-size:11px">'+esc(p.mac||'—')+'</span><br><span class="muted">'+esc(p.ip||'')+'</span></td><td>'+esc(p.package_label||'—')+'<br><span class="muted">'+dur(p.seconds)+'</span></td><td>'+methodLabel+'</td><td class="mono" style="font-size:12px">'+esc(p.tid||'—')+(p.ref?'<br><span class="muted" title="Tracking ID the customer wrote in the wallet notes">ref '+esc(p.ref)+'</span>':'')+'</td><td><b>Rs '+esc(p.amount||'0')+'</b></td><td><span class="pill '+esc(p.status)+'">'+esc(p.status)+'</span></td><td><div class="actions">'+actions+'</div></td></tr>'}).join('')||'<tr><td colspan="8" class="empty">No online payments yet. Customers will see the Buy Online option on the captive portal once you configure your JazzCash/EasyPaisa numbers in Settings.</td></tr>';})}
+  $('pbody').addEventListener('click',function(e){var b=e.target.closest('button[data-payact]');if(!b)return;var act=b.dataset.payact,payid=b.dataset.payid;if(act==='confirm'){var row=(window._payRows||[]).filter(function(x){return x.pay_id===payid})[0]||{};if(!confirm('Confirm this payment?\n\nCheck your '+(row.method==='jazzcash'?'JazzCash':row.method==='easypaisa'?'EasyPaisa':'wallet')+' history for:\n  TID '+(row.tid||'?')+'\n  Tracking ID '+(row.ref||'?')+' in the notes\n  Amount Rs '+(row.amount||'?')+'\n\nThe customer\'s internet activates immediately.'))return;api('/api/admin/pay-confirm',{pay_id:payid}).then(function(j){toast(j.ok?'Payment confirmed — internet activated!':(j.error||'Could not confirm'));loadPayments();refresh()})}else if(act==='reject'){var note=prompt('Reason for rejection (optional):','')||'';api('/api/admin/pay-reject',{pay_id:payid,note:note}).then(function(j){toast(j.ok?'Payment rejected':(j.error||'Could not reject'));loadPayments()})}});
+  document.querySelectorAll('[data-payfilter]').forEach(function(b){b.addEventListener('click',function(){payFilter=b.dataset.payfilter;document.querySelectorAll('[data-payfilter]').forEach(function(x){x.classList.remove('active')});b.classList.add('active');loadPayments()})});
+  $('refreshPayments').addEventListener('click',loadPayments);
+  // --- Online packages builder ---
+  var onlinePackages=[];
+  function oPkgForm(){return ['opkg_label','opkg_down','opkg_up','opkg_duration','opkg_rate','opkg_price','opkg_id']}
+  function clearOPkg(){oPkgForm().forEach(function(id){$(id).value=''});$('opkg_duration_unit').value='hour';$('opkg_rate_unit').value='hour';oCalcPrice();$('saveOPkg').textContent='Save online package'}
+  function oCalcPrice(){var d=Number($('opkg_duration').value)||0,u=$('opkg_duration_unit').value,r=Number($('opkg_rate').value)||0,ru=$('opkg_rate_unit').value;if(!d||!r)return;var per=ru==='day'?86400:3600,sec=u==='day'?d*86400:d*3600,tot=r*sec/per;$('opkg_price').value=tot%1===0?tot.toFixed(0):tot.toFixed(2)}
+  function editOPkg(id){var p=onlinePackages.filter(function(x){return x.id===id})[0];if(!p)return;$('opkg_id').value=p.id;$('opkg_label').value=p.label;var sec=p.seconds;if(sec%86400===0){$('opkg_duration').value=sec/86400;$('opkg_duration_unit').value='day'}else{$('opkg_duration').value=Math.round(sec/3600);$('opkg_duration_unit').value='hour'}$('opkg_down').value=p.down_kbps;$('opkg_up').value=p.up_kbps;$('opkg_rate').value=p.rate||'';$('opkg_rate_unit').value=p.rate_unit||'hour';$('opkg_price').value=p.price||'';$('saveOPkg').textContent='Update online package'}
+  function delOPkg(id){if(!confirm('Delete this online package? It will no longer appear on the captive portal.'))return;api('/api/admin/online-packages',{action:'delete',id:id}).then(function(j){toast(j.ok?'Online package deleted':(j.error||'Could not delete'));loadOnlinePackages()})}
+  function loadOnlinePackages(){api('/api/admin/online-packages').then(function(j){onlinePackages=j.packages||[];$('onlinePackageList').innerHTML=onlinePackages.map(function(p){return '<div class="package-row"><span><b>'+esc(p.label)+'</b><br><small>'+dur(p.seconds)+' · '+speed(p.down_kbps)+' / '+speed(p.up_kbps)+(p.rate?' · Rs '+esc(p.rate)+' '+(p.rate_unit==='day'?'per day':'per hour'):'')+'</small></span><span class="row-actions"><b>Rs '+esc(p.price||'0')+'</b><button class="small" type="button" data-oedit="'+esc(p.id)+'">Edit</button><button class="small danger" type="button" data-odel="'+esc(p.id)+'">Delete</button></span></div>'}).join('')||'<div class="empty">No online packages yet. Build your first one above — these are the only packages customers see on Buy Online.</div>';document.querySelectorAll('[data-oedit]').forEach(function(b){b.addEventListener('click',function(){editOPkg(b.dataset.oedit)})});document.querySelectorAll('[data-odel]').forEach(function(b){b.addEventListener('click',function(){delOPkg(b.dataset.odel)})})}).catch(function(){})}
+  $('saveOPkg').addEventListener('click',function(){
+    var id=$('opkg_id').value;
+    var label=$('opkg_label').value.trim();
+    var durN=Number($('opkg_duration').value)||0;
+    if(!label)return toast('Give the package a name');
+    if(durN<=0)return toast('Enter how long the package lasts');
+    if(!(Number($('opkg_price').value)>0))return toast('Online packages must have a price');
+    if(!id){
+      id='op-'+label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,20)+'-'+durN+$('opkg_duration_unit').value.charAt(0);
+      var base=id,k=2;while(onlinePackages.some(function(x){return x.id===id})){id=base+'-'+k;k++}
+    }
+    api('/api/admin/online-packages',{id:id,label:label,duration:durN,duration_unit:$('opkg_duration_unit').value,down_kbps:$('opkg_down').value,up_kbps:$('opkg_up').value,rate:$('opkg_rate').value,rate_unit:$('opkg_rate_unit').value,price:$('opkg_price').value}).then(function(j){if(!j.ok)return toast(j.error||'Could not save');toast($('opkg_id').value?'Online package updated':'Online package saved');loadOnlinePackages();clearOPkg()})
   });
-  $('pass').addEventListener('keydown',function(e){if(e.key==='Enter')$('gateBtn').click()});
-  $('logout').addEventListener('click',function(){api('/api/logout',{x:1}).then(function(){location.reload()})});
+  $('resetOPkg').addEventListener('click',clearOPkg);
+  ['opkg_duration','opkg_rate'].forEach(function(id){$(id).addEventListener('input',oCalcPrice)});
+  ['opkg_duration_unit','opkg_rate_unit'].forEach(function(id){$(id).addEventListener('change',oCalcPrice)});
+  // --- End online packages ---
+  function loadSettings(){api('/api/admin/settings').then(function(s){var _op=(s.online_pay===true||String(s.online_pay)==='1');document.querySelectorAll('[data-feature=onlinepay]').forEach(function(el){el.classList.toggle('hidden',!_op)});if(_op)loadOnlinePackages();['shop','ssid','channel','max_sta','jazzcash_number','jazzcash_name','easypaisa_number','easypaisa_name'].forEach(function(id){if($(id)&&s[id]!=null)$(id).value=s[id]});if($('pay_auto_verify'))$('pay_auto_verify').checked=!(s.pay_auto_verify===false||String(s.pay_auto_verify)==='0');$('shopTitle').textContent=s.shop||'RNS Internet';if($('shopTitleSide'))$('shopTitleSide').textContent=s.shop||'RNS Internet';$('pause').textContent=s.paused?'Resume gate':'Pause gate';var _g=s.paused?'● Gate paused':'● Gate armed';if($('live'))$('live').textContent=_g;if($('liveSide'))$('liveSide').textContent=_g});loadOnlinePackages();api('/api/admin/events').then(function(j){$('ebody').innerHTML=(j.events||[]).slice().reverse().map(function(e){return '<div><time>'+new Date((e.t||0)*1000).toLocaleString()+'</time><b>'+esc(e.action)+'</b><br><span class="muted">'+esc(e.detail)+'</span></div>'}).join('')||'<div class="muted">No events yet.</div>'})}
+  $('gateBtn').addEventListener('click',function(){var setup=this.dataset.setup==='1',remember=$('remember').checked?'1':'0';var path=setup?'/api/setup':'/api/login';api(path,{password:$('pass').value,remember:remember}).then(function(j){if(!j.ok){$('gateMsg').textContent=j.error||'Could not sign in';return}$('gateMsg').textContent='';showApp()})});$('pass').addEventListener('keydown',function(e){if(e.key==='Enter')$('gateBtn').click()});$('showpw').addEventListener('click',function(){var p=$('pass');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'Show':'Hide'});$('logout').addEventListener('click',function(){api('/api/logout',{x:1}).then(function(){location.reload()})});
   document.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){go(b.dataset.tab)})});
-  $('codeSearch').addEventListener('input',function(){clearTimeout(window._s);window._s=setTimeout(loadCodes,250)});
-  $('clientSearch').addEventListener('input',function(){clearTimeout(window._c);window._c=setTimeout(loadClients,250)});
-  $('refreshCodes').addEventListener('click',loadCodes);
-  $('refreshClients').addEventListener('click',loadClients);
-  $('vbody').addEventListener('click',function(e){
-    var b=e.target.closest('button');if(!b)return;
-    if(!confirm('Confirm '+b.dataset.act+'?'))return;
-    api('/api/admin/'+b.dataset.act,{code:b.dataset.code}).then(function(j){toast(j.ok?'Done':(j.error||'Failed'));loadCodes()});
-  });
+  function openSheet(){$('moreSheet').classList.add('show');$('sheetOverlay').classList.add('show')}
+  function closeSheet(){$('moreSheet').classList.remove('show');$('sheetOverlay').classList.remove('show')}
+  $('moreBtn').addEventListener('click',openSheet);
+  $('sheetOverlay').addEventListener('click',closeSheet);
+  $('clientSearch').addEventListener('input',function(){clearTimeout(window._csearch);window._csearch=setTimeout(renderClients,200)});
+  document.querySelectorAll('[data-cfilter]').forEach(function(b){b.addEventListener('click',function(){clientFilter=b.dataset.cfilter;document.querySelectorAll('[data-cfilter]').forEach(function(x){x.classList.remove('active')});b.classList.add('active');renderClients()})});
+  $('codeSearch').addEventListener('input',function(){clearTimeout(window._search);window._search=setTimeout(loadCodes,250)});document.querySelectorAll('#tab-codes .filter').forEach(function(b){b.addEventListener('click',function(){filter=b.dataset.filter;document.querySelectorAll('#tab-codes .filter').forEach(function(x){x.classList.remove('active')});b.classList.add('active');loadCodes()})});$('refreshCodes').addEventListener('click',loadCodes);$('pdfCodes').addEventListener('click',function(){var st=filter==='all'?'all':filter;window.open('/api/admin/vouchers.pdf?status='+encodeURIComponent(st)+'&search='+encodeURIComponent($('codeSearch').value||''),'_blank')});$('refreshClients').addEventListener('click',loadClients);
+  $('vbody').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if((b.dataset.act==='delete'||b.dataset.act==='revoke')&&!confirm('Confirm '+b.dataset.act+' for '+b.dataset.code+'?'))return;api('/api/admin/'+b.dataset.act,{code:b.dataset.code}).then(function(j){toast(j.ok?'Voucher updated':j.error||'Action failed');loadCodes();refresh()})});$('cbody').addEventListener('click',function(e){var b=e.target.closest('button'),wrap=e.target.closest('[data-mac]');if(!b||!wrap)return;var st=b.dataset.state;if(st==='banned'&&!confirm('Ban this device? No voucher will work on it until you Unban.'))return;api('/api/admin/client-status',{mac:wrap.dataset.mac,state:st}).then(function(j){toast(j.ok?(st==='kicked'?'Device paused — Unkick or a new code restores it':st==='banned'?'Device banned':'Device back online'):j.error||'Action failed');loadClients();loadCodes();refresh()})});
+  $('copyCode').addEventListener('click',function(){if(navigator.clipboard)navigator.clipboard.writeText(lastCodes.join('\n'));toast('Codes copied')});$('printCode').addEventListener('click',function(){window.print()});$('pdfUnused').addEventListener('click',function(){if(!lastCodes.length)return toast('Generate a voucher first');window.open('/api/admin/vouchers.pdf?codes='+encodeURIComponent(lastCodes.join(',')),'_blank')});$('save').addEventListener('click',function(){api('/api/admin/settings',{shop:$('shop').value,ssid:$('ssid').value,channel:$('channel').value,max_sta:$('max_sta').value}).then(function(j){toast(j&&j.ap==='applied'?'Network saved — Wi-Fi reloaded':'Network saved — applies on next boot');loadSettings()})});$('savePay').addEventListener('click',function(){api('/api/admin/settings',{jazzcash_number:$('jazzcash_number').value,jazzcash_name:$('jazzcash_name').value,easypaisa_number:$('easypaisa_number').value,easypaisa_name:$('easypaisa_name').value,pay_auto_verify:$('pay_auto_verify').checked?'1':'0'}).then(function(){toast('Payment settings saved');loadSettings()})});$('pause').addEventListener('click',function(){api('/api/admin/pause',{x:1}).then(function(){loadSettings();toast('Gate state updated')})});
   $('savePkg').addEventListener('click',function(){
     var id=$('pkg_id').value;
     var label=$('pkg_label').value.trim();
-    var d=Number($('pkg_duration').value)||0;
-    if(!label||d<=0)return toast('Name and time required');
+    var durN=Number($('pkg_duration').value)||0;
+    if(!label)return toast('Give the package a name');
+    if(durN<=0)return toast('Enter how long the package lasts');
     if(!id){
-      id=label.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,20)+'-'+d+$('pkg_duration_unit').value.charAt(0);
+      // The operator never types an ID. Derive a stable one from the name and
+      // duration, and keep it unique against the packages that already exist.
+      id=label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,24)||'pkg';
+      id=id+'-'+durN+$('pkg_duration_unit').value.charAt(0);
       var base=id,k=2;
       while(packages.some(function(x){return x.id===id})){id=base+'-'+k;k++}
     }
-    api('/api/admin/packages',{id:id,label:label,duration:d,duration_unit:$('pkg_duration_unit').value,down_kbps:$('pkg_down').value,up_kbps:$('pkg_up').value,price:$('pkg_price').value}).then(function(j){
-      if(!j.ok)return toast(j.error||'Save failed');
-      toast('Package saved');loadPackages();
-      ['pkg_id','pkg_label','pkg_down','pkg_up','pkg_duration','pkg_price'].forEach(function(x){$(x).value=''});
+    var d={id:id,label:label,
+      duration:durN,duration_unit:$('pkg_duration_unit').value,
+      down_kbps:$('pkg_down').value,up_kbps:$('pkg_up').value,
+      rate:$('pkg_rate').value,rate_unit:$('pkg_rate_unit').value,
+      price:$('pkg_price').value};
+    api('/api/admin/packages',d).then(function(j){
+      if(!j.ok)return toast(j.error||'Package was not saved');
+      toast($('pkg_id').value?'Package updated':'Package saved');
+      loadPackages();clearPkg();
     });
   });
-  $('resetPkg').addEventListener('click',function(){['pkg_id','pkg_label','pkg_down','pkg_up','pkg_duration','pkg_price'].forEach(function(x){$(x).value=''})});
-  $('saveNet').addEventListener('click',function(){
-    api('/api/admin/settings',{shop:$('shop').value,ssid:$('ssid').value,channel:$('channel').value,max_sta:$('max_sta').value}).then(function(){toast('Saved');loadSettings()});
+  $('resetPkg').addEventListener('click',clearPkg);
+  ['pkg_duration','pkg_rate'].forEach(function(id){$(id).addEventListener('input',calcPrice)});
+  ['pkg_duration_unit','pkg_rate_unit'].forEach(function(id){$(id).addEventListener('change',calcPrice)});
+  $('salesGo').addEventListener('click',function(){
+    document.querySelectorAll('#salesQuick .qrange').forEach(function(b){b.classList.remove('active')});
+    loadSales();
   });
-
-  api('/api/status').then(function(s){
-    if(s.setup_required)showGate(true);
-    else api('/api/admin/overview').then(function(j){
-      if(j._status===401||j.ok===false)showGate(false);else showApp();
-    }).catch(function(){showGate(false)});
-  }).catch(function(){showGate(false)});
-  setInterval(function(){if($('app').style.display==='block')refresh()},7000);
+  document.querySelectorAll('#salesQuick .qrange').forEach(function(b){
+    b.addEventListener('click',function(){setRange(b.dataset.range,b)});
+  });
+  $('exportCsv').addEventListener('click',exportCsv);$('chpass').addEventListener('click',function(){api('/api/admin/password',{old:$('oldp').value,new:$('newp').value}).then(function(j){$('setMsg').textContent=j.ok?'Password updated.':(j.error||'Could not update password')})});$('backup').addEventListener('click',function(){api('/api/admin/backup',{x:1}).then(function(j){$('setMsg').textContent=j.ok?'Backup and export written to '+j.backup:('Backup failed: '+(j.error||'unknown error'))})});
+  api('/api/status').then(function(s){if(s.lab){$('labBanner').classList.remove('hidden');$('labBanner').textContent='Lab preview · password '+s.lab_pass+' · sample code '+s.lab_code}if(s.setup_required)showGate(true);else api('/api/admin/overview').then(function(j){if(j._status===401||j.ok===false)showGate(false);else showApp()}).catch(function(){showGate(false);$('gateMsg').textContent='This panel is open. Gateway functions are not answering yet. Retry in a moment.';})}).catch(function(){showGate(false);$('gateMsg').textContent='This panel is open. Gateway functions are not answering yet. Retry in a moment.';});setInterval(function(){if(!$('app').classList.contains('hidden'))refresh()},7000);
 })();
 </script>
 </body>
