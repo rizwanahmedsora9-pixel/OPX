@@ -1,0 +1,54 @@
+name: ci-agent
+
+# Runs the diagnosis/deploy agent (scripts/ci_agent.py).
+#  - After every run of "build-iso" completes, if it failed, post a diagnosis
+#    as a run summary.
+#  - Can also be triggered manually to check status, diagnose recent
+#    failures, or kick off a fresh build-iso run and watch it to completion.
+
+on:
+  workflow_run:
+    workflows: ["build-iso"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "check | diagnose | deploy | watch"
+        required: true
+        default: "check"
+        type: choice
+        options: [check, diagnose, deploy, watch]
+      ref:
+        description: "branch/ref to deploy (for deploy/watch)"
+        required: false
+        default: "main"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPO: ${{ github.repository }}
+      # Optional: add ANTHROPIC_API_KEY as a repo secret for AI-written
+      # root-cause summaries instead of the built-in regex heuristics.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Diagnose the run that just finished
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+        run: python3 scripts/ci_agent.py diagnose --n 1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Manual action
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          case "${{ github.event.inputs.action }}" in
+            check)    python3 scripts/ci_agent.py check ;;
+            diagnose) python3 scripts/ci_agent.py diagnose --n 3 ;;
+            deploy)   python3 scripts/ci_agent.py deploy --ref "${{ github.event.inputs.ref }}" ;;
+            watch)    python3 scripts/ci_agent.py watch --ref "${{ github.event.inputs.ref }}" ;;
+          esac | tee -a "$GITHUB_STEP_SUMMARY"
