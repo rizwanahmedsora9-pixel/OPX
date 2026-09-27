@@ -620,11 +620,16 @@ END {
   for (j = 0; j < count; j++) {
     split(ln[xr + 2 + j], f, " ")
     num = j
-    off = f[1] + 0; kind = f[3]
+    kind = f[3]
     if (kind != "n") continue
     if (!(num in actual)) { printf "object %d: not present in the file\n", num; ok = 0; continue }
-    if (off != actual[num]) {
-      printf "object %d: xref says %d, really at %d\n", num, off, actual[num]
+    # Compare the ten characters as text. Never add 0 to an xref offset: the
+    # field is zero padded ("0000000053") and busybox awk 1.30 converts a
+    # leading-zero numeric string with base 0, i.e. as octal, so 53 becomes 43
+    # and every object in a correct PDF looks wrong.
+    off = substr(ln[xr + 2 + j], 1, 10)
+    if (off != sprintf("%010d", actual[num])) {
+      printf "object %d: xref says %s, really at %d\n", num, off, actual[num]
       printf " XREF["
       for (q = 0; q < count; q++) printf " %s", ln[xr + 2 + q]
       printf " ] ACTUAL["
