@@ -8,5 +8,5 @@ export RNS_BB=$BB
 sleep 2
 "$BB" sh "$RNS_HOME/bin/rns-pages.sh" >> /var/log/rns-pages.log 2>&1 &
 
-echo "[portal] listener started on :8080 (LAN access only via firewall)"
+echo "[portal] testing listener on 0.0.0.0:8080; admin at /admin (all interfaces)"
 exit 0

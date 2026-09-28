@@ -26,6 +26,10 @@ SPOOL=/tmp
 [ -w "$RNS_DATA" ] && SPOOL="$RNS_DATA"
 PAGES_LOG=/tmp/rns_pages.log
 
+send_redirect_admin() {
+  printf 'HTTP/1.0 302 Found\r\nLocation: /admin\r\nContent-Length: 0\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n'
+}
+
 send_headers() {
   printf 'HTTP/1.0 %s\r\nContent-Type: %s\r\nContent-Length: %s\r\nConnection: close\r\nCache-Control: no-store\r\nX-RNS-Front: 1\r\n\r\n' "$1" "$2" "$3"
 }
@@ -148,7 +152,7 @@ case "$RNS_PATH" in
   /favicon.ico) send_no_content ;;
   /health) send_bytes "200 OK" "application/json" '{"ok":true,"service":"rns-front","pages":true,"admin":true,"portal":true}' ;;
   /admin) send_admin ;;
-  /) send_portal ;;
+  /) send_redirect_admin ;;
   /api/*) delegate_api ;;
   *) send_portal ;;
 esac

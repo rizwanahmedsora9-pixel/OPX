@@ -1,4 +1,23 @@
 #!/bin/sh
+# The ISO root is read-only squashfs. Put all writable runtime paths on tmpfs
+# before rcS starts network services or daemons.
+mount_tmpfs() {
+  _path="$1" _size="$2"
+  mkdir -p "$_path" 2>/dev/null || return 1
+  mountpoint -q "$_path" && return 0
+  mount -t tmpfs -o "mode=0755,size=$_size" tmpfs "$_path" 2>/dev/null || true
+}
+
+mount_tmpfs /run 16M
+mount_tmpfs /var 32M
+mount_tmpfs /tmp 64M
+mkdir -p /run/network /run/dropbear /var/lib /var/log /var/lock \
+  /var/lib/misc /var/lib/dnsmasq /var/lib/hostapd 2>/dev/null || true
+# Keep the traditional path for packages that use /var/run; it resolves to
+# the same volatile filesystem as /run.
+rm -rf /var/run 2>/dev/null || true
+ln -s /run /var/run 2>/dev/null || mkdir -p /var/run 2>/dev/null || true
+
 mkdir -p /data 2>/dev/null
 
 DATA_DEV=""
@@ -22,8 +41,5 @@ fi
 
 mkdir -p /data/rns/database /data/rns/logs /data/rns/sessions \
          /data/rns/ratelimit /data/rns/backups /data/rns/exports 2>/dev/null
-
-mkdir -p /var/log /var/run /var/lock 2>/dev/null
-mount -t tmpfs -o size=16M tmpfs /var/log 2>/dev/null || true
 
 exit 0
