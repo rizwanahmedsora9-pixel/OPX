@@ -1,0 +1,8 @@
+# OPX busybox config fragment.
+#
+# The on-disk installer (usr/share/rns/bin/rns-install.sh) writes a new
+# partition table with fdisk and then needs the kernel to re-read it before
+# the new partitions exist as device nodes. busybox' blockdev applet issues
+# BLKRRPART (blockdev --rereptbl); it is not enabled in buildroot's default
+# busybox config.
+CONFIG_BLOCKDEV=y

@@ -1,7 +1,8 @@
 __pycache__/
 *.pyc
 
-# Buildroot local build output
-rns-router/buildroot-*/
+# Buildroot local build output (the checkout dir is buildroot-<version>/;
+# do NOT match buildroot-project/ — that is source and must be tracked)
+rns-router/buildroot-[0-9]*/
 rns-router/buildroot-*.tar.xz
 rns-router/dl/

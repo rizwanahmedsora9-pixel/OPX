@@ -20,15 +20,24 @@ ln -s /run /var/run 2>/dev/null || mkdir -p /var/run 2>/dev/null || true
 
 mkdir -p /data 2>/dev/null
 
+# Find the partition labelled RNS-DATA (the installed system's data
+# partition — created by rns-install.sh). Scan every block device via
+# blkid; fall back to the historical fixed list.
 DATA_DEV=""
-for d in /dev/sda2 /dev/sda3 /dev/sdb2 /dev/vda2 /dev/nvme0n1p2; do
-  if [ -b "$d" ]; then
-    if blkid "$d" 2>/dev/null | grep -q 'RNS-DATA'; then
-      DATA_DEV="$d"
-      break
+if command -v blkid >/dev/null 2>&1; then
+  DATA_DEV=$(blkid 2>/dev/null | awk -F: '/LABEL="RNS-DATA"/ { gsub(/ /, "", $1); print $1; exit }')
+fi
+if [ -z "$DATA_DEV" ] || [ ! -b "$DATA_DEV" ]; then
+  DATA_DEV=""
+  for d in /dev/sda2 /dev/sda3 /dev/sdb2 /dev/vda2 /dev/nvme0n1p2; do
+    if [ -b "$d" ]; then
+      if blkid "$d" 2>/dev/null | grep -q 'RNS-DATA'; then
+        DATA_DEV="$d"
+        break
+      fi
     fi
-  fi
-done
+  done
+fi
 
 if [ -n "$DATA_DEV" ]; then
   mount -t ext4 -o rw,noatime "$DATA_DEV" /data || true

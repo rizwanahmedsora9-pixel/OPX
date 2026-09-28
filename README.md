@@ -14,6 +14,11 @@ cd rns-router
 sh tests/run-tests.sh   # regression suite; no root, no network
 ```
 
+Burn the ISO raw to a USB stick (dd / balenaEtcher / Rufus DD mode) and it
+boots to a menu: **Live** (everything in RAM, disks untouched) or
+**Install** (a console installer that writes OPX to a chosen disk with a
+persistent data partition — BIOS boot only).
+
 `.github/workflows/build-iso.yml` runs that suite on every push and pull
 request, builds the ISO on branch pushes and tags, uploads it as an
 artifact, and attaches it to a GitHub release for `v*` tags.

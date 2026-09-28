@@ -46,15 +46,35 @@ if [ ! -f "$ISOLINUX_DIR/ldlinux.c32" ]; then
   exit 1
 fi
 
+# Boot menu. 'rns' (live, the default) runs the whole system from RAM and
+# writes nothing; 'install' boots the same live system with the 'install'
+# kernel argument, which makes rns-tty1.sh run the on-disk installer
+# (usr/share/rns/bin/rns-install.sh) before dropping to the login prompt.
 cat > "$ISOLINUX_DIR/isolinux.cfg" <<CFG
-DEFAULT rns
-PROMPT 0
-TIMEOUT 20
+MENU TITLE OPX Router OS
+PROMPT 1
+TIMEOUT 200
+ONTIMEOUT rns
 LABEL rns
+  MENU LABEL ^Live system (runs from RAM; nothing is written)
   KERNEL /bzImage
   APPEND root=/dev/ram0 rootfstype=squashfs ro console=tty0 console=ttyS0,115200 quiet
   INITRD /rootfs.squashfs
+LABEL install
+  MENU LABEL ^Install to disk (destroys the chosen hard drive)
+  KERNEL /bzImage
+  APPEND root=/dev/ram0 rootfstype=squashfs ro console=tty0 console=ttyS0,115200 quiet install
+  INITRD /rootfs.squashfs
 CFG
+
+# The installer dd's mbr.bin onto the target disk's master boot record at
+# install time (rns-install.sh reads it back from the ISO under /install/).
+if [ ! -f "${SYSLINUX_SRC}/mbr.bin" ]; then
+  echo "post-image: ${SYSLINUX_SRC}/mbr.bin is missing — enable BR2_TARGET_SYSLINUX_MBR=y." >&2
+  exit 1
+fi
+mkdir -p "${BINARIES_DIR}/install"
+cp "${SYSLINUX_SRC}/mbr.bin" "${BINARIES_DIR}/install/mbr.bin"
 
 # Buildroot puts host-xorriso in $(HOST_DIR)/bin, which is on PATH while the
 # post-image script runs. Fall back to a host mkisofs/genisoimage so the build

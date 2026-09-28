@@ -24,7 +24,7 @@ rns-router/
         etc/                inittab, dnsmasq.conf, hostapd.conf, fstab
         etc/init.d/         S10mounts S20network S30dnsmasq S40hostapd
                             S50gate S60rnsd S70portal
-        usr/share/rns/bin/  the gateway itself
+        usr/share/rns/bin/  the gateway itself + the disk installer
         usr/share/rns/www/  portal.html, admin.html
 ```
 
@@ -46,6 +46,41 @@ isolinux-booted: the squashfs root is loaded as an initrd, which is why
 `kernel.config` enables `BLK_DEV_INITRD`, `BLK_DEV_RAM` and a 64 MB
 `BLK_DEV_RAM_SIZE`, and why the defconfig pins `BR2_TARGET_SYSLINUX_C32="ldlinux.c32"`
 — syslinux 6 will not boot without that module beside `isolinux.bin`.
+
+## Boot menu and install to disk
+
+Burn the ISO **raw** to a USB stick — `dd if=rns-router.iso of=/dev/sdX
+bs=4M status=progress`, balenaEtcher, or Rufus in *DD image* mode (ISO mode
+makes isolinux misbehave on many machines). Booting the stick shows a
+two-entry menu:
+
+| entry | what it does |
+|---|---|
+| **Live** (default after the 20 s timeout) | boots entirely into RAM; hard disks are not touched |
+| **Install** | drops to a console installer on tty1, then reboots into the installed system |
+
+The installer is BIOS/legacy boot only — the image has no UEFI support.
+It lists the whole disks (names, sizes), asks for one, shows a warning that
+everything on it is destroyed, and requires you to type `yes`. Then it:
+
+1. writes an MBR layout with `fdisk` — `p1` ext4, active: root filesystem
+   with `/boot` and `bzImage`; `p2` ext4 labelled `RNS-DATA`: vouchers,
+   config, logs;
+2. copies the live root filesystem to `p1` (volatile paths — `/proc`,
+   `/sys`, `/dev`, `/data`, `/tmp`, … — are excluded) and carries the live
+   `/data/rns` state across to `RNS-DATA`, so existing vouchers and
+   configuration survive the install;
+3. installs the bootloader — `extlinux` into `/boot` on `p1` (the
+   `extlinux-target` package builds syslinux 6.03 for the target so the
+   binary runs in the live rootfs) and syslinux `mbr.bin`, staged in the
+   ISO under `/install/`, into the disk's master boot record;
+4. unmounts everything and offers a reboot.
+
+After the reboot the machine runs OPX straight from the hard drive, the USB
+stick can come out, and `/data` (mounted from the `RNS-DATA` label by
+`S10mounts`) persists across reboots. The installer refuses the disk it
+booted from, refuses disks with mounted filesystems, and refuses anything
+under 512 MB. No LVM, no RAID, no UEFI — deliberately plain.
 
 ## Continuous integration
 
@@ -79,8 +114,11 @@ Runs the real overlay scripts under busybox — no root, no network, no
 firewall. It covers shell syntax, address parsing, the whole voucher
 lifecycle, a live socat listener serving `/health`, the portal, the admin
 page and the authenticated API, the boot-time generation of the dnsmasq and
-hostapd configs, and the build/firewall configuration. socat is the only
-optional dependency; without it the live listener case is skipped.
+hostapd configs, the build/firewall configuration, and the disk installer —
+run against fake sysfs/dev trees and stubbed fdisk/mke2fs/extlinux,
+including its refusals (boot medium, mounted disks, small disks) and the
+tty1 install-mode console. socat is the only optional dependency; without
+it the live listener case is skipped.
 
 ## How a request flows
 
@@ -101,7 +139,10 @@ expired voucher is revoked even if nothing else is watching.
 `/etc` is a read-only squashfs. Anything a boot script needs to write goes
 under `/data/rns` (a partition labelled `RNS-DATA` if present, tmpfs
 otherwise): `config.env`, `database/*.tsv`, `logs/`, `sessions/`, and the
-generated `dnsmasq.conf` and `hostapd.conf`.
+generated `dnsmasq.conf` and `hostapd.conf`. On a live boot that is tmpfs —
+rebooting loses it. After an install, `S10mounts` finds the `RNS-DATA`
+partition (the `p2` the installer created) by its label, so `/data/rns`
+persists across reboots.
 
 ## Security notes
 

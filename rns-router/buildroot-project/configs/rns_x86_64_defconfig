@@ -37,8 +37,15 @@ BR2_TARGET_SYSLINUX=y
 BR2_TARGET_SYSLINUX_ISOLINUX=y
 BR2_TARGET_SYSLINUX_MBR=y
 # syslinux 6 will not boot without ldlinux.c32 next to isolinux.bin, and
-# this option defaults to empty.
-BR2_TARGET_SYSLINUX_C32="ldlinux.c32"
+# this option defaults to empty. menu.c32 renders the boot menu with the
+# Live / Install-to-disk choices.
+BR2_TARGET_SYSLINUX_C32="ldlinux.c32 menu.c32"
+# The installer runs the syslinux 'extlinux' tool inside the live system,
+# so it must be built for the target (see package/extlinux-target).
+BR2_PACKAGE_EXTLINUX_TARGET=y
+# The installer re-reads partition tables with blockdev --rereptbl after
+# fdisk; buildroot's default busybox config leaves the applet out.
+BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_RNS_ROUTER_PATH)/board/rns/x86_64/busybox.fragment"
 BR2_PACKAGE_BUSYBOX=y
 BR2_PACKAGE_BUSYBOX_SHOW_OTHERS=y
 BR2_PACKAGE_IPTABLES=y

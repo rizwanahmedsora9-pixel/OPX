@@ -227,6 +227,7 @@ printf 'kernel\n' > "$IMG/bzImage"
 printf 'squashfs\n' > "$IMG/rootfs.squashfs"
 printf 'boot\n' > "$IMG/syslinux/isolinux.bin"
 printf 'c32\n'  > "$IMG/syslinux/ldlinux.c32"
+printf 'mbr\n'  > "$IMG/syslinux/mbr.bin"
 
 # A stand-in for xorriso/genisoimage: records its arguments and writes an
 # output file of a known size. post-image.sh's own logic — arg handling, the
@@ -256,6 +257,11 @@ has 'mkisofs' "$(cat "$WORK/mkiso.args" 2>/dev/null)" "xorriso invoked in mkisof
 filehas 'root=/dev/ram0 rootfstype=squashfs ro' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg boots the ramdisk root"
 filehas 'INITRD /rootfs.squashfs' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg loads the squashfs"
 filehas 'console=ttyS0,115200' "$IMG/isolinux/isolinux.cfg" "serial console enabled"
+filehas 'MENU TITLE OPX Router OS' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg shows a boot menu"
+filehas 'ONTIMEOUT rns' "$IMG/isolinux/isolinux.cfg" "the menu falls back to live after the timeout"
+filehas 'LABEL install' "$IMG/isolinux/isolinux.cfg" "the menu offers an install entry"
+filehas 'quiet install' "$IMG/isolinux/isolinux.cfg" "the install entry passes the install kernel arg"
+[ -f "$IMG/install/mbr.bin" ] && ok "mbr.bin staged for the on-disk installer" || bad "mbr.bin not staged"
 rm -f "$IMG/bzImage"
 out=$("$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
 has 'is missing' "$out" "a missing kernel image is reported clearly"
@@ -272,6 +278,12 @@ rm -rf "$IMG/isolinux"
 out=$(PATH="$WORK/bin:$PATH" "$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
 has 'BR2_TARGET_SYSLINUX_C32' "$out" "a missing ldlinux.c32 is refused with the fix"
 mv "$WORK/ldlinux.c32.bak" "$IMG/syslinux/ldlinux.c32"
+
+# Without mbr.bin the installer could not boot a freshly partitioned disk.
+mv "$IMG/syslinux/mbr.bin" "$WORK/mbr.bin.bak"
+out=$(PATH="$WORK/bin:$PATH" "$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
+has 'BR2_TARGET_SYSLINUX_MBR' "$out" "a missing mbr.bin is refused with the fix"
+mv "$WORK/mbr.bin.bak" "$IMG/syslinux/mbr.bin"
 
 # The non-xorriso invocation path, and a writer that cannot be found.
 mkdir -p "$WORK/bin2"; cp "$WORK/bin/xorriso" "$WORK/bin2/genisoimage"
@@ -832,6 +844,149 @@ if command -v socat >/dev/null 2>&1; then
 else
   skip "socat not installed — new-endpoint live tests not run"
 fi
+# ------------------------------------------------- installer (rns-install.sh)
+echo "== installer (rns-install.sh, fake disks + fake tools)"
+IT="$WORK/install"
+rm -rf "$IT"
+mkdir -p "$IT/fakes" "$IT/sys/block" "$IT/sys/class/block" "$IT/dev" "$IT/proc" \
+  "$IT/live/data/rns/database" "$IT/live/proc" "$IT/live/sys" "$IT/live/tmp" \
+  "$IT/cdrom/install"
+# the fake "live" root the installer copies from (volatile paths included,
+# so the excludes are exercised)
+echo live > "$IT/live/HOSTNAME"
+echo cfg  > "$IT/live/data/rns/config.env"
+echo junk > "$IT/live/tmp/junk"
+# the fake boot medium (ISO) content: kernel + mbr image
+printf 'FAKEKERNEL' > "$IT/cdrom/bzImage"
+printf 'FAKEMBR'    > "$IT/cdrom/install/mbr.bin"
+# fake disks: sda 4 GiB target, sdb the boot medium, sdc 100 MB (too small)
+for d in "sda 8388608 8:0" "sdb 8388608 8:16" "sdc 204800 8:32"; do
+  set -- $d
+  mkdir -p "$IT/sys/block/$1/device" "$IT/sys/class/block/$1"
+  echo "$2" > "$IT/sys/block/$1/size"
+  echo "$3" > "$IT/sys/class/block/$1/dev"
+done
+echo "Test Disk" > "$IT/sys/block/sda/device/model"
+# /proc/mounts format: device mountpoint type options — the iso9660 type is $3
+printf '/dev/sdb /cdrom iso9660 ro,relatime 0 0\n' > "$IT/proc/mounts"
+# fake tools: every call is logged to $IT/cmds
+mkfake() {
+  {
+    printf '#!/bin/sh\n'
+    printf 'echo "%s $*" >> "%s/cmds"\n' "$1" "$IT"
+  } > "$IT/fakes/$1"
+  chmod +x "$IT/fakes/$1"
+}
+for t in mke2fs mount umount extlinux sync blockdev; do mkfake "$t"; done
+mkfake blkid
+printf '#!/bin/sh\nexit 2\n' > "$IT/fakes/blkid"; chmod +x "$IT/fakes/blkid"
+{
+  printf '#!/bin/sh\n'
+  printf 'echo "fdisk $*" >> "%s/cmds"\n' "$IT"
+  printf 'cat > "%s/fdisk.stdin"\n' "$IT"
+  printf 'disk=${1##*/}\n'
+  printf 'mkdir -p "%s/sys/block/${disk}1" "%s/sys/block/${disk}2"\n' "$IT" "$IT"
+  printf ': > "%s/dev/${disk}1"; : > "%s/dev/${disk}2"\n' "$IT" "$IT"
+} > "$IT/fakes/fdisk"
+chmod +x "$IT/fakes/fdisk"
+{
+  printf '#!/bin/sh\n'
+  printf 'echo "dd $*" >> "%s/cmds"\n' "$IT"
+  printf 'F=""; O=""\n'
+  printf 'for a in "$@"; do case $a in if=*) F=${a#if=};; of=*) O=${a#of=};; esac; done\n'
+  printf '[ -n "$F" ] && [ -n "$O" ] && cat "$F" > "$O"\n'
+} > "$IT/fakes/dd"
+chmod +x "$IT/fakes/dd"
+run_installer() {
+  rm -f "$IT/cmds" "$IT/fdisk.stdin" "$IT/out"
+  : > "$IT/answers"
+  for a in "$@"; do printf '%s\n' "$a" >> "$IT/answers"; done
+  RNS_INSTALL_SYS="$IT/sys" RNS_INSTALL_DEV="$IT/dev" RNS_INSTALL_PROC="$IT/proc" \
+  RNS_INSTALL_ROOT="$IT/live" RNS_INSTALL_MNT="$IT/mnt" \
+  RNS_INSTALL_MNTDATA="$IT/mntdata" RNS_INSTALL_CDROM="$IT/cdrom" \
+  RNS_INSTALL_ANSWERS="$IT/answers" \
+  PATH="$IT/fakes:$PATH" "$BB" sh "$RNSH/bin/rns-install.sh" > "$IT/out" 2>&1
+}
+run_installer sda yes n
+eq "installer: exit 0 on a 4 GiB disk" "0" "$?"
+eq "installer: root filesystem copied" "live" "$(cat "$IT/mnt/HOSTNAME" 2>/dev/null)"
+eq "installer: kernel installed at the partition root" "FAKEKERNEL" "$(cat "$IT/mnt/bzImage" 2>/dev/null)"
+eq "installer: live /data/rns carried over to RNS-DATA" "cfg" "$(cat "$IT/mntdata/rns/config.env" 2>/dev/null)"
+if [ ! -e "$IT/mnt/proc" ] && [ ! -e "$IT/mnt/data" ] && [ ! -e "$IT/mnt/tmp" ]; then
+  ok "installer: proc/data/tmp are not baked into the image"
+else
+  bad "installer: volatile paths leaked into the image"
+fi
+filehas 'root=/dev/sda1 rootfstype=ext4' "$IT/mnt/boot/extlinux.conf" "extlinux.conf points at the root partition"
+filehas 'KERNEL /bzImage' "$IT/mnt/boot/extlinux.conf" "extlinux.conf loads the kernel"
+has "fdisk $IT/dev/sda" "$(cat "$IT/cmds" 2>/dev/null)" "installer: fdisk ran on the chosen disk"
+has "RNS-DATA" "$(cat "$IT/cmds" 2>/dev/null)" "installer: data partition gets the RNS-DATA label"
+has "extlinux -i $IT/mnt/boot" "$(cat "$IT/cmds" 2>/dev/null)" "installer: extlinux installed into /boot"
+has "of=$IT/dev/sda" "$(cat "$IT/cmds" 2>/dev/null)" "installer: MBR written to the whole disk"
+has "sync" "$(cat "$IT/cmds" 2>/dev/null)" "installer: sync before unmount"
+eq "installer: MBR content is the syslinux mbr.bin" "FAKEMBR" "$(cat "$IT/dev/sda" 2>/dev/null)"
+# 4 GiB = 8388608 sectors; ROOT_MB = 2048 -> p1 = 2048..4196351, p2 = the rest
+for s in 2048 4196351 4196352 8388607; do
+  if grep -qx "$s" "$IT/fdisk.stdin" 2>/dev/null; then ok "fdisk script: sector $s"; else bad "fdisk script: sector $s"; fi
+done
+if grep -qx "a" "$IT/fdisk.stdin" 2>/dev/null && grep -qx "w" "$IT/fdisk.stdin" 2>/dev/null; then
+  ok "fdisk script: active flag set and table written"
+else
+  bad "fdisk script: active flag set and table written"
+fi
+
+# refusing to install onto the disk the system booted from
+run_installer sdb yes n
+[ "$?" -ne 0 ] && ok "installer: the boot medium is refused" || bad "installer: the boot medium is refused"
+has "booted from" "$(cat "$IT/out" 2>/dev/null)" "installer: names the reason"
+! grep -q '^fdisk' "$IT/cmds" 2>/dev/null && ok "installer: nothing partitioned on refusal" || bad "installer: fdisk ran anyway"
+
+# refusing when the confirmation is not 'yes'
+run_installer sda no n
+[ "$?" -ne 0 ] && ok "installer: aborted when confirmation is not yes" || bad "installer: aborted when confirmation is not yes"
+! grep -q '^fdisk' "$IT/cmds" 2>/dev/null && ok "installer: nothing partitioned on abort" || bad "installer: fdisk ran anyway"
+
+# refusing disks that are too small
+run_installer sdc yes n
+[ "$?" -ne 0 ] && ok "installer: a 100 MB disk is refused" || bad "installer: a 100 MB disk is refused"
+has "too small" "$(cat "$IT/out" 2>/dev/null)" "installer: says the disk is too small"
+
+# refusing when no disk was chosen
+run_installer "" "" n
+[ "$?" -ne 0 ] && ok "installer: aborts when no disk is chosen" || bad "installer: aborts when no disk is chosen"
+
+# ----------------------------------------------------------------- rns-tty1
+echo "== rns-tty1.sh (install-mode console)"
+T1="$RNSH/bin/rns-tty1.sh"
+mkdir -p "$IT/tty1"
+printf 'root=/dev/ram0 rootfstype=squashfs ro quiet\n' > "$IT/tty1/cmdline-live"
+printf 'root=/dev/ram0 install quiet\n'               > "$IT/tty1/cmdline-install"
+printf '#!/bin/sh\necho "getty $*" >> "%s/tty1/gettylog"\n' "$IT" > "$IT/tty1/getty"
+chmod +x "$IT/tty1/getty"
+rm -f "$IT/tty1/gettylog"
+RNS_TTY1_CMDLINE="$IT/tty1/cmdline-live" RNS_TTY1_GETTY="$IT/tty1/getty" RNS_TTY1_TTY=tty1 \
+  "$BB" sh "$T1" > "$IT/tty1/out-live" 2>&1
+has "getty -L tty1 0 vt100" "$(cat "$IT/tty1/gettylog" 2>/dev/null)" "tty1 (live): getty is started"
+! grep -q "install to disk" "$IT/tty1/out-live" 2>/dev/null \
+  && ok "tty1 (live): installer is not started" || bad "tty1 (live): installer is not started"
+# fresh answers for the installer the install-mode console will run
+run_installer sda yes n
+RNS_TTY1_CMDLINE="$IT/tty1/cmdline-install" RNS_TTY1_GETTY="$IT/tty1/getty" RNS_TTY1_TTY=tty1 \
+RNS_INSTALL_SYS="$IT/sys" RNS_INSTALL_DEV="$IT/dev" RNS_INSTALL_PROC="$IT/proc" \
+RNS_INSTALL_ROOT="$IT/live" RNS_INSTALL_MNT="$IT/mnt" RNS_INSTALL_MNTDATA="$IT/mntdata" \
+RNS_INSTALL_CDROM="$IT/cdrom" RNS_INSTALL_ANSWERS="$IT/answers" \
+PATH="$IT/fakes:$PATH" "$BB" sh "$T1" > "$IT/tty1/out-install" 2>&1
+grep -q "OPX Router OS - install to disk" "$IT/tty1/out-install" 2>/dev/null \
+  && ok "tty1 (install): installer runs before the login prompt" || bad "tty1 (install): installer runs before the login prompt"
+[ "$(grep -c getty "$IT/tty1/gettylog" 2>/dev/null)" -ge 2 ] \
+  && ok "tty1 (install): getty still starts after the installer" || bad "tty1 (install): getty still starts after the installer"
+
+# ------------------------------------------------- S10mounts RNS-DATA lookup
+echo "== S10mounts (RNS-DATA partition lookup)"
+_out=$(printf '/dev/sda2: UUID="abc" LABEL="RNS-DATA" TYPE="ext4"\n/dev/sdb1: LABEL="usb" TYPE="vfat"\n' \
+  | "$BB" awk -F: '/LABEL="RNS-DATA"/ { gsub(/ /, "", $1); print $1; exit }')
+eq "S10mounts: the label scan finds the data partition" "/dev/sda2" "$_out"
+
 # ------------------------------------------------------------------ summary
 echo
 echo "passed=$PASS failed=$FAIL skipped=$SKIP"

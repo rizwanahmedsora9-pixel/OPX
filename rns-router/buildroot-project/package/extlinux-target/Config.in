@@ -1,0 +1,11 @@
+config BR2_PACKAGE_EXTLINUX_TARGET
+	bool "extlinux-target"
+	depends on BR2_x86_64
+	help
+	  Syslinux 'extlinux' bootloader installer, built with the target
+	  toolchain so it can run inside the OPX live system at install time.
+
+	  Buildroot's own boot/syslinux package builds this tool for the build
+	  host; the OPX installer (rns-install.sh) runs it on the target to set
+	  up an installed (on-disk) boot: 'extlinux -i <bootdir>' writes the
+	  patched boot sector, ldlinux.sys and ldlinux.c32 for an ext4 /boot.
