@@ -1,7 +1,8 @@
 __pycache__/
 *.pyc
 
-# Buildroot local build output
-rns-router/buildroot-*/
+# Buildroot local build output. Version trees start with a digit; do not match
+# the tracked rns-router/buildroot-project/ source tree.
+rns-router/buildroot-[0-9]*/
 rns-router/buildroot-*.tar.xz
 rns-router/dl/

@@ -41,11 +41,42 @@ workflow produces is reproducible locally. `BR_VER`, `JOBS` and `BR2_DL_DIR`
 override the buildroot version, the parallelism and the download cache
 location. `build-in-termux.sh` is kept as an alias.
 
-Output: `buildroot-2024.02.3/output/images/rns-router.iso`. The ISO is
-isolinux-booted: the squashfs root is loaded as an initrd, which is why
-`kernel.config` enables `BLK_DEV_INITRD`, `BLK_DEV_RAM` and a 64 MB
-`BLK_DEV_RAM_SIZE`, and why the defconfig pins `BR2_TARGET_SYSLINUX_C32="ldlinux.c32"`
-— syslinux 6 will not boot without that module beside `isolinux.bin`.
+Output: `buildroot-2024.02.3/output/images/rns-router.iso`. On boot, a
+branded RNS VESAMENU stays visible for 10 seconds. Its navy, aqua and gold
+styling matches the portal and staff panel. It offers live, install,
+compatibility, serial-console, local-disk and restart actions. The squashfs
+root is loaded as an initrd, which is why `kernel.config` enables
+`BLK_DEV_INITRD`, `BLK_DEV_RAM` and a 64 MB `BLK_DEV_RAM_SIZE`. The defconfig
+includes `ldlinux.c32`, `vesamenu.c32`, its libraries and the action modules;
+Syslinux 6 needs those files beside `isolinux.bin`. The image is mastered as a
+BIOS isohybrid, so the installer can copy the same bootable image to a hard
+disk and add a persistent `RNS-DATA` partition.
+
+## VirtualBox: Live Boot and installation
+
+1. Create an **Other Linux (64-bit)** VM with at least 512 MB RAM and a virtual
+   hard disk of at least 1 GB. Leave **Enable EFI** off; this image currently
+   uses legacy BIOS/ISOLINUX.
+2. Attach `rns-router.iso` to the VM's optical drive and start the VM.
+3. The **RNS Gateway — Boot Options** menu appears. Use the arrow keys and
+   Enter. Available actions are:
+   - **Start RNS OS — Live Mode** runs the gateway directly from the ISO.
+   - **Install RNS OS to Disk** starts the text installer.
+   - **Compatibility Mode** uses conservative settings for older hardware.
+   - **Serial Console Mode** starts headless on COM1 at 115200 baud.
+   - **Boot from Local Disk** leaves the ISO and starts the first disk.
+   - **Restart Computer** restarts without booting RNS OS.
+4. The installer lists the VM's disks and asks for an exact `ERASE /dev/...`
+   confirmation. **The selected disk is completely erased.** It installs the
+   bootable read-only system and uses the remaining space for persistent
+   settings, vouchers, logs and backups.
+5. When installation completes, let it eject the ISO and reboot. If VirtualBox
+   does not allow guest ejection, power off, remove the ISO in
+   **Settings → Storage**, and start the VM from its virtual hard disk.
+
+The Live option starts automatically after 10 seconds. If the menu does not
+appear at all, confirm that the ISO is attached, Optical is before Hard Disk in
+**System → Boot Order**, and EFI is disabled.
 
 ## Continuous integration
 
@@ -99,9 +130,12 @@ expired voucher is revoked even if nothing else is watching.
 ## Layout on the device
 
 `/etc` is a read-only squashfs. Anything a boot script needs to write goes
-under `/data/rns` (a partition labelled `RNS-DATA` if present, tmpfs
-otherwise): `config.env`, `database/*.tsv`, `logs/`, `sessions/`, and the
-generated `dnsmasq.conf` and `hostapd.conf`.
+under `/data/rns`: the installer creates and labels an ext4 `RNS-DATA`
+partition from the disk's remaining space, and the boot scripts discover it
+by label on any supported disk controller. A Live boot without that partition
+uses tmpfs instead. Persistent content includes `config.env`,
+`database/*.tsv`, `logs/`, `sessions/`, and the generated `dnsmasq.conf` and
+`hostapd.conf`.
 
 ## Security notes
 

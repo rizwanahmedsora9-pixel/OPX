@@ -1,0 +1,10 @@
+#!/bin/sh
+# The installer is opt-in from the ISOLINUX boot menu. A normal/live boot does
+# no installer work and immediately proceeds with the router startup sequence.
+case " $(cat /proc/cmdline 2>/dev/null) " in
+  *" rns.mode=install "*)
+    /usr/share/rns/bin/rns-install.sh
+    exit $?
+    ;;
+esac
+exit 0

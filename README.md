@@ -14,6 +14,11 @@ cd rns-router
 sh tests/run-tests.sh   # regression suite; no root, no network
 ```
 
+The ISO opens a branded **RNS OS** boot menu with live, install,
+compatibility, serial-console, local-disk and restart choices. See the
+[VirtualBox instructions](rns-router/README.md#virtualbox-live-boot-and-installation)
+for VM setup, installation and persistent storage details.
+
 `.github/workflows/build-iso.yml` runs that suite on every push and pull
 request, builds the ISO on branch pushes and tags, uploads it as an
 artifact, and attaches it to a GitHub release for `v*` tags.

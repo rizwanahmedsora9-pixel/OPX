@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07131f"/>
+      <stop offset="0.58" stop-color="#0a2030"/>
+      <stop offset="1" stop-color="#0b2c36"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e4a68"/>
+      <stop offset="1" stop-color="#0fb3a8"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6fe3da"/>
+      <stop offset="1" stop-color="#f2c777"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="18%" r="72%">
+      <stop offset="0" stop-color="#159d99" stop-opacity=".23"/>
+      <stop offset=".55" stop-color="#0e6270" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#07131f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dy="6"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".28"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="640" height="480" fill="url(#bg)"/>
+  <rect width="640" height="480" fill="url(#glow)"/>
+
+  <!-- Subtle network topology motif -->
+  <g fill="none" stroke="#70e4db" stroke-opacity=".1" stroke-width="1.2">
+    <path d="M402 26L493 72L572 42L628 101M493 72L526 144L612 175M526 144L446 187L592 245M446 187L496 273L628 303"/>
+    <path d="M463 8L493 72M572 42L526 144M612 175L592 245M496 273L562 346"/>
+  </g>
+  <g fill="#70e4db" fill-opacity=".28">
+    <circle cx="402" cy="26" r="3"/><circle cx="493" cy="72" r="4"/><circle cx="572" cy="42" r="3"/>
+    <circle cx="628" cy="101" r="3"/><circle cx="526" cy="144" r="4"/><circle cx="612" cy="175" r="3"/>
+    <circle cx="446" cy="187" r="3"/><circle cx="592" cy="245" r="4"/><circle cx="496" cy="273" r="3"/>
+    <circle cx="628" cy="303" r="3"/><circle cx="562" cy="346" r="3"/>
+  </g>
+
+  <!-- RNS brand -->
+  <g filter="url(#shadow)">
+    <rect x="48" y="32" width="70" height="70" rx="19" fill="url(#brand)" stroke="#8df2e9" stroke-opacity=".28"/>
+    <circle cx="83" cy="82" r="4.2" fill="#ffffff"/>
+    <path d="M70 71.5a18.5 18.5 0 0 1 26 0M63 63a28.5 28.5 0 0 1 40 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="139" y="58" fill="#6fe3da" font-family="DejaVu Sans,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="2.8">ROUTER OPERATING SYSTEM</text>
+  <text x="137" y="91" fill="#f2f8fa" font-family="DejaVu Sans,Arial,sans-serif" font-size="31" font-weight="800" letter-spacing="1.5">RNS GATEWAY</text>
+  <rect x="139" y="104" width="258" height="3" rx="1.5" fill="url(#accent)"/>
+
+  <!-- Menu and information surfaces -->
+  <rect x="46" y="137" width="548" height="230" rx="18" fill="#10263a" fill-opacity=".92" stroke="#c8e6ec" stroke-opacity=".16"/>
+  <rect x="47" y="138" width="546" height="1" fill="#ffffff" opacity=".06"/>
+  <rect x="47" y="366" width="546" height="1" fill="#000" opacity=".25"/>
+
+  <g transform="translate(48 399)">
+    <rect width="544" height="47" rx="13" fill="#0b1d2c" stroke="#c8e6ec" stroke-opacity=".12"/>
+    <circle cx="25" cy="23.5" r="6" fill="#8ee6bf"/>
+    <circle cx="25" cy="23.5" r="11" fill="none" stroke="#8ee6bf" stroke-opacity=".17" stroke-width="4"/>
+    <text x="44" y="20" fill="#dce9ee" font-family="DejaVu Sans Mono,monospace" font-size="10" font-weight="700" letter-spacing=".9">GATEWAY READY</text>
+    <text x="44" y="34" fill="#9fb4bf" font-family="DejaVu Sans,Arial,sans-serif" font-size="10">Secure access  •  Smart vouchers  •  Network control</text>
+    <text x="507" y="29" text-anchor="end" fill="#f2c777" font-family="DejaVu Sans Mono,monospace" font-size="10" font-weight="700">x86_64</text>
+  </g>
+
+  <text x="320" y="469" text-anchor="middle" fill="#78919e" font-family="DejaVu Sans,Arial,sans-serif" font-size="8.5" letter-spacing="1.5">RNS  •  RELIABLE NETWORK SERVICES</text>
+</svg>

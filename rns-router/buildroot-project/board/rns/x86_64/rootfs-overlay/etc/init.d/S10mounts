@@ -21,12 +21,16 @@ ln -s /run /var/run 2>/dev/null || mkdir -p /var/run 2>/dev/null || true
 mkdir -p /data 2>/dev/null
 
 DATA_DEV=""
-for d in /dev/sda2 /dev/sda3 /dev/sdb2 /dev/vda2 /dev/nvme0n1p2; do
-  if [ -b "$d" ]; then
-    if blkid "$d" 2>/dev/null | grep -q 'RNS-DATA'; then
-      DATA_DEV="$d"
-      break
-    fi
+# The installer always labels the persistent partition RNS-DATA. Discover by
+# label instead of assuming a particular controller/name (sda, vda, NVMe,
+# MMC, ...), so the same image works across VirtualBox and real hardware.
+for _sysdev in /sys/class/block/*; do
+  [ -e "$_sysdev/partition" ] || continue
+  d="/dev/${_sysdev##*/}"
+  [ -b "$d" ] || continue
+  if [ "$(blkid -s LABEL -o value "$d" 2>/dev/null | head -n 1)" = "RNS-DATA" ]; then
+    DATA_DEV="$d"
+    break
   fi
 done
 
