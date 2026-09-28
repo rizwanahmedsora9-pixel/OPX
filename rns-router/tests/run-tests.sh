@@ -195,17 +195,45 @@ filehas 'hostfwd=tcp:0.0.0.0:8080-:8080' "$PROJ/run-qemu.sh" "QEMU forwards port
 filehas 'BR2_PACKAGE_SOCAT=y'           "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "socat is built into the image"
 filehas 'BR2_PACKAGE_HOST_XORRISO=y'    "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "host xorriso is built for the ISO"
 filehas 'BR2_LINUX_KERNEL_BZIMAGE=y'    "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "kernel image is named bzImage"
-filehas 'ldlinux.c32'                   "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "syslinux C32 module is installed"
-for sym in CONFIG_BLK_DEV_INITRD CONFIG_BLK_DEV_RAM CONFIG_NET_SCHED \
-           CONFIG_NET_SCH_INGRESS CONFIG_NET_CLS_ACT CONFIG_NET_ACT_POLICE \
-           CONFIG_UNIX CONFIG_PACKET; do
+filehas 'ldlinux.c32'                   "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "syslinux runtime module is installed"
+filehas 'vesamenu.c32'                  "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "graphical syslinux menu is installed"
+filehas 'libcom32.c32'                  "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "syslinux menu dependency is installed"
+filehas 'libutil.c32'                   "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "syslinux utility dependency is installed"
+filehas 'chain.c32'                     "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "local-disk boot action is installed"
+filehas 'reboot.c32'                    "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "restart action is installed"
+filehas 'BR2_PACKAGE_E2FSPROGS=y'       "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "installer can format persistent ext4 data"
+filehas 'BR2_PACKAGE_UTIL_LINUX_EJECT=y' "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "installer can eject the ISO"
+filehas 'BR2_PACKAGE_UTIL_LINUX_WIPEFS=y' "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "installer can clear old disk signatures"
+for sym in CONFIG_BLK_DEV_INITRD CONFIG_BLK_DEV_RAM CONFIG_BLK_DEV_SR \
+           CONFIG_SCSI CONFIG_NET_SCHED CONFIG_NET_SCH_INGRESS \
+           CONFIG_NET_CLS_ACT CONFIG_NET_ACT_POLICE CONFIG_UNIX CONFIG_PACKET; do
   filehas "^$sym=y" "$BOARD/kernel.config" "$sym enabled"
 done
 filehas '^CONFIG_BLK_DEV_RAM_SIZE=65536' "$BOARD/kernel.config" "ramdisk larger than the rootfs"
 filehas 'root=/dev/ram0' "$BOARD/post-image.sh" "boot args match the initrd root"
-filehas 'INITRD /rootfs.squashfs' "$BOARD/post-image.sh" "squashfs is loaded as initrd"
+filehas 'INITRD rootfs.squashfs' "$BOARD/post-image.sh" "squashfs is loaded as initrd"
+filehas 'UI vesamenu.c32' "$BOARD/post-image.sh" "ISO shows the graphical RNS boot menu"
+filehas 'MENU BACKGROUND boot-background.png' "$BOARD/post-image.sh" "boot menu loads the branded background"
+filehas 'MENU LABEL ^Start RNS OS' "$BOARD/post-image.sh" "boot menu offers RNS Live Mode"
+filehas 'MENU LABEL ^Install RNS OS' "$BOARD/post-image.sh" "boot menu offers installation"
+filehas 'Compatibility Mode' "$BOARD/post-image.sh" "boot menu offers compatibility mode"
+filehas 'Serial Console Mode' "$BOARD/post-image.sh" "boot menu offers serial-console mode"
+filehas 'Boot from Local Disk' "$BOARD/post-image.sh" "boot menu offers local-disk boot"
+filehas 'Restart Computer' "$BOARD/post-image.sh" "boot menu offers restart"
+filehas 'rns.mode=install' "$BOARD/post-image.sh" "installer entry selects install mode"
+filehas 'isohybrid-mbr' "$BOARD/post-image.sh" "ISO is bootable after it is copied to disk"
 filehas 'xorriso' "$BOARD/post-image.sh" "post-image can build the ISO"
 filehas 'over the 10 MB target' "$BOARD/post-image.sh" "ISO size is a warning, not a failure"
+filehas 'rns.mode=install' "$ROOTFS/etc/init.d/S05installer" "installer only starts for the install boot entry"
+filehas 'RNS-DATA' "$RNSH/bin/rns-install.sh" "installer creates persistent router data"
+[ -s "$BOARD/boot-background.png" ] && ok "branded boot background is present" \
+  || bad "branded boot background is missing"
+eq "boot background has a PNG signature" "89504e470d0a1a0a" \
+   "$("$BB" od -An -tx1 -N8 "$BOARD/boot-background.png" | "$BB" tr -d ' \n')"
+eq "installer partition path for SATA" "/dev/sda2" \
+   "$("$BB" sh "$RNSH/bin/rns-install.sh" --partition-path /dev/sda 2)"
+eq "installer partition path for NVMe" "/dev/nvme0n1p2" \
+   "$("$BB" sh "$RNSH/bin/rns-install.sh" --partition-path /dev/nvme0n1 2)"
 
 # ---------------------------------------------------------- firewall posture
 echo "== firewall posture"
@@ -226,7 +254,10 @@ mkdir -p "$IMG/syslinux"
 printf 'kernel\n' > "$IMG/bzImage"
 printf 'squashfs\n' > "$IMG/rootfs.squashfs"
 printf 'boot\n' > "$IMG/syslinux/isolinux.bin"
-printf 'c32\n'  > "$IMG/syslinux/ldlinux.c32"
+for _module in ldlinux.c32 vesamenu.c32 libcom32.c32 libutil.c32 chain.c32 reboot.c32; do
+  printf 'c32\n' > "$IMG/syslinux/$_module"
+done
+printf 'hybrid-mbr\n' > "$WORK/isohdpfx.bin"
 
 # A stand-in for xorriso/genisoimage: records its arguments and writes an
 # output file of a known size. post-image.sh's own logic — arg handling, the
@@ -248,13 +279,23 @@ chmod 755 "$WORK/bin/xorriso"
 
 # RNS_MKISO pins the writer: GitHub's runners ship a real xorriso, and a
 # search-based test would silently exercise that instead of the stub.
-PATH="$WORK/bin:$PATH" RNS_MKISO=xorriso \
+PATH="$WORK/bin:$PATH" RNS_MKISO=xorriso RNS_ISOHYBRID_MBR="$WORK/isohdpfx.bin" \
   "$BB" sh "$BOARD/post-image.sh" "$IMG" > "$WORK/pi.out" 2>&1
 eq "post-image exits 0 with a 12 MB ISO" "0" "$?"
 has 'over the 10 MB target' "$(cat "$WORK/pi.out")" "large ISO warns instead of failing"
 has 'mkisofs' "$(cat "$WORK/mkiso.args" 2>/dev/null)" "xorriso invoked in mkisofs mode"
+has '-isohybrid-mbr' "$(cat "$WORK/mkiso.args" 2>/dev/null)" "xorriso embeds a hard-disk boot MBR"
+has '-partition_offset' "$(cat "$WORK/mkiso.args" 2>/dev/null)" "hybrid ISO gets an appendable partition layout"
+filehas '^UI vesamenu.c32' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg loads the graphical menu UI"
+filehas 'MENU BACKGROUND boot-background.png' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg loads RNS branding"
+filehas 'Start RNS OS  -  Live Mode' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg offers Live Mode"
+filehas 'Install RNS OS to Disk' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg offers installation"
+filehas 'Compatibility Mode' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg offers compatibility mode"
+filehas 'Serial Console Mode' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg offers serial mode"
+filehas 'COM32 chain.c32' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg can boot the local disk"
+filehas 'COM32 reboot.c32' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg can restart the machine"
 filehas 'root=/dev/ram0 rootfstype=squashfs ro' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg boots the ramdisk root"
-filehas 'INITRD /rootfs.squashfs' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg loads the squashfs"
+filehas 'INITRD rootfs.squashfs' "$IMG/isolinux/isolinux.cfg" "isolinux.cfg loads the squashfs"
 filehas 'console=ttyS0,115200' "$IMG/isolinux/isolinux.cfg" "serial console enabled"
 rm -f "$IMG/bzImage"
 out=$("$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
@@ -263,6 +304,12 @@ printf 'kernel\n' > "$IMG/bzImage"
 [ -f "$IMG/rns-router.iso" ] && ok "iso written to images/" || bad "iso not written"
 [ -f "$IMG/isolinux/isolinux.bin" ] && ok "isolinux.bin staged from syslinux/" || bad "isolinux.bin not staged"
 [ -f "$IMG/isolinux/ldlinux.c32" ] && ok "ldlinux.c32 staged beside isolinux.bin" || bad "ldlinux.c32 not staged"
+[ -f "$IMG/isolinux/vesamenu.c32" ] && ok "vesamenu.c32 staged beside isolinux.bin" || bad "vesamenu.c32 not staged"
+[ -f "$IMG/isolinux/libcom32.c32" ] && ok "libcom32.c32 staged for the menu" || bad "libcom32.c32 not staged"
+[ -f "$IMG/isolinux/libutil.c32" ] && ok "libutil.c32 staged for the menu" || bad "libutil.c32 not staged"
+[ -f "$IMG/isolinux/chain.c32" ] && ok "chain.c32 staged for local-disk boot" || bad "chain.c32 not staged"
+[ -f "$IMG/isolinux/reboot.c32" ] && ok "reboot.c32 staged for restart" || bad "reboot.c32 not staged"
+[ -f "$IMG/isolinux/boot-background.png" ] && ok "RNS background staged in the ISO" || bad "RNS background not staged"
 
 # syslinux 6 refuses to boot without ldlinux.c32, so a missing one must be fatal
 # Simulate a clean output/images: the isolinux/ dir is derived, so drop the
@@ -275,11 +322,19 @@ mv "$WORK/ldlinux.c32.bak" "$IMG/syslinux/ldlinux.c32"
 
 # The non-xorriso invocation path, and a writer that cannot be found.
 mkdir -p "$WORK/bin2"; cp "$WORK/bin/xorriso" "$WORK/bin2/genisoimage"
+cat > "$WORK/bin2/isohybrid" <<'EOS'
+#!/bin/sh
+# genisoimage already wrote the stub ISO; record that the required patch step ran.
+printf '%s\n' "$@" > "${RNS_TEST_ISOHYBRID_LOG:?}"
+EOS
+chmod 755 "$WORK/bin2/isohybrid"
 rm -f "$IMG/rns-router.iso"
-PATH="$WORK/bin2:$PATH" RNS_MKISO=genisoimage \
+PATH="$WORK/bin2:$PATH" RNS_MKISO=genisoimage RNS_ISOHYBRID="$WORK/bin2/isohybrid" \
+  RNS_TEST_ISOHYBRID_LOG="$WORK/isohybrid.args" \
   "$BB" sh "$BOARD/post-image.sh" "$IMG" >/dev/null 2>&1
 eq "honours RNS_MKISO=genisoimage" "0" "$?"
 [ -f "$IMG/rns-router.iso" ] && ok "genisoimage path writes the iso" || bad "genisoimage path wrote nothing"
+has 'rns-router.iso' "$(cat "$WORK/isohybrid.args" 2>/dev/null)" "genisoimage output is patched with isohybrid"
 
 rm -f "$IMG/rns-router.iso"
 out=$(RNS_MKISO=/nonexistent-iso-writer "$BB" sh "$BOARD/post-image.sh" "$IMG" 2>&1) || true
