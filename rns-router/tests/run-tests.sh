@@ -144,7 +144,7 @@ if command -v socat >/dev/null 2>&1; then
   H=$(client 'GET /health HTTP/1.0\r\n\r\n')
   has '"pages":true' "$H" "/health answers"
   P=$(client 'GET / HTTP/1.0\r\n\r\n')
-  has 'Connect · RNS Internet' "$P" "portal page is served"
+  has 'Location: /admin' "$P" "root URL redirects to admin"
   A=$(client 'GET /admin HTTP/1.0\r\n\r\n')
   has 'RNS Gateway · Staff' "$A" "admin page is served"
   U=$(client 'GET /api/admin/overview HTTP/1.0\r\nAccept: application/json\r\n\r\n')
@@ -185,6 +185,13 @@ filehas 'bridge=br0' "$WORK/data/hostapd.conf" "hostapd joins the bridge"
 
 # -------------------------------------------------------- build configuration
 echo "== build configuration"
+filehas 'mount_tmpfs /run 16M' "$ROOTFS/etc/init.d/S10mounts" "volatile /run mounted early"
+filehas 'mount_tmpfs /var 32M' "$ROOTFS/etc/init.d/S10mounts" "volatile /var mounted early"
+filehas 'mount_tmpfs /tmp 64M' "$ROOTFS/etc/init.d/S10mounts" "volatile /tmp mounted early"
+filehas 'mkdir -p /run/network /run/dropbear /var/lib' "$ROOTFS/etc/init.d/S10mounts" "runtime directories created early"
+filehas '^nobody:x:65534:65534:' "$ROOTFS/etc/passwd" "nobody user is installed"
+filehas '^nobody:x:65534:' "$ROOTFS/etc/group" "nobody group is installed"
+filehas 'hostfwd=tcp:0.0.0.0:8080-:8080' "$PROJ/run-qemu.sh" "QEMU forwards portal on all host interfaces"
 filehas 'BR2_PACKAGE_SOCAT=y'           "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "socat is built into the image"
 filehas 'BR2_PACKAGE_HOST_XORRISO=y'    "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "host xorriso is built for the ISO"
 filehas 'BR2_LINUX_KERNEL_BZIMAGE=y'    "$PROJ/buildroot-project/configs/rns_x86_64_defconfig" "kernel image is named bzImage"

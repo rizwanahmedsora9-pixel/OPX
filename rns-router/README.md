@@ -105,8 +105,7 @@ generated `dnsmasq.conf` and `hostapd.conf`.
 
 ## Security notes
 
-- The admin panel is reachable from the LAN only; `S50gate` drops 8080 and
-  22 from the WAN side. Set the admin password on first visit.
+- **Testing mode:** the admin panel listens on all guest interfaces and port 8080 is allowed by the firewall. The QEMU launcher forwards host port 8080 on all host interfaces, so use `http://<your-PC-IP>:8080/admin` from another device on your test network. Do not expose this setup to an untrusted network; restrict the forward/firewall before deployment.
 - `FORWARD` defaults to `DROP`. Nothing reaches the internet until a voucher
   says so.
 - The image ships with an **empty root password** and SSH closed on every

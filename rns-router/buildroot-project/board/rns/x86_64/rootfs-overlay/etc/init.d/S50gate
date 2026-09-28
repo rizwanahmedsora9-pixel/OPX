@@ -29,11 +29,10 @@ ipt -P FORWARD DROP
 ipt -t nat -C POSTROUTING -o "$WAN_IF" -j MASQUERADE 2>/dev/null \
   || ipt -t nat -A POSTROUTING -o "$WAN_IF" -j MASQUERADE
 
-# Admin panel: LAN only.
-ipt -C RNS_IN -i br0 -p tcp --dport "$ADMIN_PORT" -j ACCEPT 2>/dev/null \
-  || ipt -A RNS_IN -i br0 -p tcp --dport "$ADMIN_PORT" -j ACCEPT
-ipt -C RNS_IN -i "$WAN_IF" -p tcp --dport "$ADMIN_PORT" -j DROP 2>/dev/null \
-  || ipt -A RNS_IN -i "$WAN_IF" -p tcp --dport "$ADMIN_PORT" -j DROP
+# Testing mode: make the admin listener reachable on every guest interface.
+# Restrict this to a trusted virtual/test network; tighten before deployment.
+ipt -C RNS_IN -p tcp --dport "$ADMIN_PORT" -j ACCEPT 2>/dev/null \
+  || ipt -A RNS_IN -p tcp --dport "$ADMIN_PORT" -j ACCEPT
 
 # SSH is closed from everywhere by default. dropbear ships with an empty
 # root password (BR2_TARGET_GENERIC_ROOT_PASSWD=""), so exposing 22 to the
@@ -50,5 +49,5 @@ ipt -t nat -C RNS_PRE -i br0 -p tcp --dport 80 -j REDIRECT --to-ports "$ADMIN_PO
 # Arm the captive rules now rather than waiting for rnsd's first sweep.
 /usr/share/rns/bin/rns-gate-min.sh >/dev/null 2>&1
 
-echo "[gate] FORWARD=DROP WAN=$WAN_IF LAN=br0 admin=$ADMIN_PORT (LAN only) ssh=closed"
+echo "[gate] FORWARD=DROP WAN=$WAN_IF LAN=br0 admin=$ADMIN_PORT (all interfaces; testing) ssh=closed"
 exit 0
